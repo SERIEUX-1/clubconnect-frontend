@@ -1,122 +1,634 @@
-// Shape matches apps.clubs.serializers.ClubPublicSerializer exactly, so
-// swapping this for `await api.clubs.list()` is a one-line change once the
-// backend is running (see src/lib/api.js).
+// Full mock data matching Django models and serializers for seamless fallback and instant offline demo.
+// Derived / composed exports (used by legacy page components before they migrated to api.js calls)
+
+
+export const MOCK_PERSONAS = [
+  {
+    role: "student",
+    label: "Student",
+    name: "Alex Mercer",
+    email: "alex.student@campus.edu",
+    password: "Pass1234!",
+    student_id: "STU-2026-0812",
+    description: "Discover & join clubs, QR check-in to events, view personal memberships.",
+    badge: "Active Member",
+    avatar: "AM",
+  },
+  {
+    role: "club_leader",
+    label: "Club Leader",
+    name: "Sarah Chen",
+    email: "sarah.leader@campus.edu",
+    password: "Pass1234!",
+    student_id: "STU-2024-0194",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    description: "Submit monthly reports, schedule events & generate QR, manage evidence & collaborations.",
+    badge: "Robotics Lead",
+    avatar: "SC",
+  },
+  {
+    role: "committee_member",
+    label: "Committee Member",
+    name: "Marcus Vance",
+    email: "marcus.member@campus.edu",
+    password: "Pass1234!",
+    student_id: "FAC-2021-0032",
+    assigned_clubs: ["1", "2"],
+    description: "Review assigned clubs, inspect evidence queue, evaluate AI scoring recommendations.",
+    badge: "Assigned Reviewer",
+    avatar: "MV",
+  },
+  {
+    role: "committee_head",
+    label: "Committee Head",
+    name: "Dr. Elena Rostova",
+    email: "dr.elena.head@campus.edu",
+    password: "Pass1234!",
+    student_id: "ADM-2018-0001",
+    description: "Governance command center, confidential rankings, criteria weights & CCEA Reveal Mode.",
+    badge: "Governance Head",
+    avatar: "ER",
+  },
+  {
+    role: "dean_admin",
+    label: "Dean / Institutional Admin",
+    name: "Dean Arthur Harrison",
+    email: "dean.harrison@campus.edu",
+    password: "Pass1234!",
+    student_id: "DEAN-2015-0010",
+    description: "Macro institutional analytics, campus engagement trends, strategic CCEA insights.",
+    badge: "Institutional Exec",
+    avatar: "AH",
+  },
+  {
+    role: "system_admin",
+    label: "System Administrator",
+    name: "Admin Root",
+    email: "admin@campus.edu",
+    password: "Pass1234!",
+    student_id: "SYS-2020-9999",
+    description: "Full system oversight, audit trails, security configurations & user management.",
+    badge: "Superadmin",
+    avatar: "AR",
+  },
+];
+
 export const MOCK_CLUBS = [
   {
     id: "1",
     code: "014",
+    slug: "robotics-and-ai-society",
     name: "Robotics & AI Society",
     category: "Technology",
     status: "recognized",
     established_date: "2022-03-14",
     description:
       "Builds autonomous robots and runs weekly workshops on machine learning for beginners across every faculty.",
+    mission:
+      "To make robotics and applied machine learning genuinely accessible to every student, regardless of prior coding experience.",
+    vision:
+      "A campus where any student can turn an engineering or computational idea into a working prototype.",
+    objectives:
+      "1. Run termly beginner ML bootcamps. 2. Field competitive teams in national autonomous robotics contests. 3. Partner with secondary schools on STEM outreach.",
+    staff_advisor_name: "Prof. Alan Turing Jr.",
+    public_contact_email: "robotics@campus.edu",
+    members_count: 142,
+    health_status: "healthy",
+    current_score: 91.2,
     logo_initial: "R",
+    badge_color: "from-sky-500 to-blue-600",
   },
   {
     id: "2",
     code: "029",
+    slug: "environmental-action-collective",
     name: "Environmental Action Collective",
     category: "Sustainability",
     status: "recognized",
     established_date: "2019-09-02",
     description:
       "Runs campus composting, native tree-planting drives, and a termly sustainability audit published to the whole institution.",
+    mission:
+      "Drive campus sustainability through student-led action, ecological stewardship, and transparent institutional reporting.",
+    vision: "A zero-waste, carbon-conscious institution setting the benchmark for sustainable universities.",
+    objectives:
+      "1. Divert 2+ tonnes of organic waste per term. 2. Restore native flora on campus boundaries. 3. Publish biannual carbon audit.",
+    staff_advisor_name: "Dr. Rachel Carson-Lee",
+    public_contact_email: "ecoclub@campus.edu",
+    members_count: 98,
+    health_status: "healthy",
+    current_score: 88.5,
     logo_initial: "E",
+    badge_color: "from-emerald-500 to-teal-600",
   },
   {
     id: "3",
     code: "007",
+    slug: "debate-and-rhetoric-union",
     name: "Debate & Rhetoric Union",
     category: "Academic",
     status: "recognized",
     established_date: "2015-01-20",
     description:
       "Competitive debate training, public speaking clinics, and the institution's delegation to the national inter-varsity circuit.",
+    mission:
+      "Cultivate rigorous analytical thought, articulate advocacy, and respectful discourse across contentious public issues.",
+    vision: "Inspire the next generation of civic and intellectual leaders.",
+    objectives:
+      "1. Compete in 4 national tournaments. 2. Host campus open debate nights. 3. Train novice speakers in British Parliamentary style.",
+    staff_advisor_name: "Dr. Julian Sterling",
+    public_contact_email: "debate@campus.edu",
+    members_count: 65,
+    health_status: "needs_attention",
+    current_score: 79.4,
     logo_initial: "D",
+    badge_color: "from-amber-500 to-orange-600",
   },
   {
     id: "4",
     code: "041",
+    slug: "filmmakers-guild",
     name: "Filmmakers Guild",
     category: "Arts & Culture",
     status: "pending",
     established_date: "2026-06-01",
     description:
       "A newly forming collective for student filmmakers — short films, a termly screening night, and equipment-sharing.",
+    mission:
+      "Provide hands-on cinema production opportunities, camera gear access, and an artistic community for all aspiring filmmakers.",
+    vision: "Establish an annual student cinema festival showcasing campus voices.",
+    objectives: "1. Produce 6 original student short films. 2. Establish a pooled equipment gear-cage. 3. Host monthly critique screenings.",
+    staff_advisor_name: "Mira Patel",
+    public_contact_email: "film@campus.edu",
+    members_count: 32,
+    health_status: "needs_attention",
+    current_score: 68.0,
     logo_initial: "F",
+    badge_color: "from-violet-500 to-purple-600",
   },
   {
     id: "5",
     code: "003",
+    slug: "community-health-outreach",
     name: "Community Health Outreach",
     category: "Community Service",
     status: "recognized",
     established_date: "2017-05-11",
     description:
       "Free health-literacy workshops in surrounding communities, run in partnership with the Faculty of Medicine.",
+    mission:
+      "Bridge health information gaps in underserved urban neighborhoods through evidence-based student volunteering.",
+    vision: "Equitable access to preventative health education for every surrounding community.",
+    objectives: "1. Conduct 10 free preventative screening clinics. 2. Distribute 1,000 health literacy guides in 3 languages.",
+    staff_advisor_name: "Dr. Beatrice Bennett",
+    public_contact_email: "health.outreach@campus.edu",
+    members_count: 110,
+    health_status: "at_risk",
+    current_score: 62.1,
     logo_initial: "H",
+    badge_color: "from-rose-500 to-red-600",
   },
   {
     id: "6",
     code: "022",
+    slug: "chess-and-strategy-circle",
     name: "Chess & Strategy Circle",
     category: "Recreation",
     status: "recognized",
     established_date: "2020-11-30",
     description:
       "Weekly ladder tournaments, beginner coaching, and an annual campus-wide blitz championship.",
+    mission:
+      "Foster strategic thinking, patience, and inclusive social connection through competitive and casual chess.",
+    vision: "A welcoming intellectual recreational space accessible to any skill level.",
+    objectives: "1. Run weekly Wednesday open blitz sessions. 2. Crown the annual Campus Grandmaster. 3. Provide free coaching to beginners.",
+    staff_advisor_name: "Prof. David Kasparov",
+    public_contact_email: "chess@campus.edu",
+    members_count: 78,
+    health_status: "healthy",
+    current_score: 87.0,
     logo_initial: "C",
+    badge_color: "from-indigo-500 to-blue-600",
   },
 ];
 
-export const MOCK_PORTFOLIO = {
-  ...MOCK_CLUBS[0],
-  mission:
-    "To make robotics and applied machine learning genuinely accessible to every student, regardless of prior coding experience.",
-  verified_activities: [
-    {
-      title: "Beginner ML Bootcamp",
-      objective:
-        "Give first-year students a working machine-learning model in a single afternoon, removing the intimidation barrier around AI.",
-      date_time: "2026-07-18T09:00:00Z",
-      report_text:
-        "42 students attended, up from 26 last term. 9 out of 10 post-session survey respondents said they'd attend a follow-up session.",
-    },
-    {
-      title: "Autonomous Line-Follower Challenge",
-      objective:
-        "A friendly build-and-race competition to apply control-systems theory learned in the workshop series.",
-      date_time: "2026-05-02T13:00:00Z",
-      report_text:
-        "14 teams competed. Partnered with the Engineering Faculty for judging and prize sponsorship.",
-    },
+export const MOCK_ACTIVITIES = [
+  {
+    id: "act-1",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    title: "Beginner Machine Learning Bootcamp",
+    activity_type: "Workshop",
+    status: "verified",
+    date_time: "2026-08-15T09:00:00Z",
+    location: "Turing Engineering Hall, Lab 3B",
+    objective:
+      "Give first-year students a working machine-learning model in a single afternoon, removing the intimidation barrier around AI.",
+    expected_participation: 35,
+    actual_participation: 42,
+    report_text:
+      "42 students attended, up from 26 last term. 9 out of 10 post-session survey respondents said they'd attend a follow-up session.",
+    lessons_learned: "Pre-load Jupyter containers next time to save 20 minutes on installation.",
+  },
+  {
+    id: "act-2",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    title: "Autonomous Line-Follower Challenge",
+    activity_type: "Competition",
+    status: "verified",
+    date_time: "2026-08-28T13:00:00Z",
+    location: "Student Union Atrium",
+    objective: "A friendly build-and-race competition to apply control-systems theory learned in the workshop series.",
+    expected_participation: 50,
+    actual_participation: 64,
+    report_text: "14 teams competed. Partnered with the Engineering Faculty for judging and prize sponsorship.",
+    lessons_learned: "Increase track boundary walls for high-speed differential-drive rovers.",
+  },
+  {
+    id: "act-3",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    title: "Campus AI Hackathon 2026",
+    activity_type: "Project",
+    status: "submitted",
+    date_time: "2026-09-02T10:00:00Z",
+    location: "Innovation Hub",
+    objective: "48-hour collaborative build sprint creating campus-assistant prototypes.",
+    expected_participation: 80,
+    actual_participation: 78,
+    report_text: "78 active builders completed 16 project submissions across 4 tracks.",
+    lessons_learned: "Extend mentor shift availability past midnight.",
+  },
+  {
+    id: "act-4",
+    club_id: "2",
+    club_name: "Environmental Action Collective",
+    title: "Native Campus Tree Planting Drive",
+    activity_type: "Community Service",
+    status: "verified",
+    date_time: "2026-08-20T08:30:00Z",
+    location: "North Campus Arboretum",
+    objective: "Plant 150 indigenous saplings along the campus water basin to prevent soil erosion.",
+    expected_participation: 40,
+    actual_participation: 55,
+    report_text: "Planted 165 saplings in 4 hours. Irrigation system verified and mulch applied.",
+    lessons_learned: "Provide extra leather gardening gloves for thorny underbrush.",
+  },
+];
+
+export const MOCK_EVENTS = [
+  {
+    id: "evt-1",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    title: "Weekly AI Lab & Robot Build Session",
+    description: "Bring your laptops or hardware components. Mentors on-site for machine learning debugging and soldering.",
+    starts_at: new Date(Date.now() - 3600000).toISOString(),
+    ends_at: new Date(Date.now() + 10800000).toISOString(),
+    location: "Innovation Lab Room 204",
+    capacity: 60,
+    qr_token: "QR-ROBOTICS-2026-ACTIVE",
+    check_in_open: true,
+    check_in_window: "Active Now (Closes in 3 hours)",
+  },
+  {
+    id: "evt-2",
+    club_id: "2",
+    club_name: "Environmental Action Collective",
+    title: "Sustainability Workshop: Urban Micro-Farming",
+    description: "Learn vertical balcony gardening and rainwater harvesting principles for student apartments.",
+    starts_at: new Date(Date.now() + 86400000 * 2).toISOString(),
+    ends_at: new Date(Date.now() + 86400000 * 2 + 7200000).toISOString(),
+    location: "Greenhouse 1A",
+    capacity: 40,
+    qr_token: "QR-ENV-2026-FARM",
+    check_in_open: false,
+    check_in_window: "Opens in 2 days",
+  },
+  {
+    id: "evt-3",
+    club_id: "3",
+    club_name: "Debate & Rhetoric Union",
+    title: "Open Floor Parliamentary Debate: AI in Higher Ed",
+    description: "Public British Parliamentary debate with audience cross-examination and guest adjudicators.",
+    starts_at: new Date(Date.now() + 86400000 * 4).toISOString(),
+    ends_at: new Date(Date.now() + 86400000 * 4 + 7200000).toISOString(),
+    location: "Moot Court Hall",
+    capacity: 100,
+    qr_token: "QR-DEBATE-2026-BP",
+    check_in_open: false,
+    check_in_window: "Opens in 4 days",
+  },
+];
+
+export const MOCK_MEMBERSHIPS = [
+  {
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    role: "member",
+    status: "approved",
+    joined_at: "2026-03-15",
+  },
+  {
+    club_id: "2",
+    club_name: "Environmental Action Collective",
+    role: "member",
+    status: "approved",
+    joined_at: "2026-04-10",
+  },
+  {
+    club_id: "4",
+    club_name: "Filmmakers Guild",
+    role: "member",
+    status: "requested",
+    joined_at: "2026-09-01",
+  },
+];
+
+export const MOCK_EVIDENCE_ITEMS = [
+  {
+    id: "ev-1",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    activity_title: "Beginner Machine Learning Bootcamp",
+    evidence_type: "attendance_record",
+    caption: "ML Bootcamp Attendance Sheet & Feedback Survey",
+    description: "Scanned attendee sign-in roster with 42 verified student signatures and survey chart.",
+    status: "verified",
+    reviewer_comment: "Cross-checked with institutional badge scans. Complete evidence.",
+    reviewer_name: "Marcus Vance",
+    file_name: "bootcamp_roster.pdf",
+    created_at: "2026-08-16T10:00:00Z",
+  },
+  {
+    id: "ev-2",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    activity_title: "Autonomous Line-Follower Challenge",
+    evidence_type: "image",
+    caption: "High-Res Action Photos & Faculty Judging Rubric",
+    description: "Photographs of 14 rovers on course, time logs, and signed faculty scoresheet.",
+    status: "verified",
+    reviewer_comment: "Clear evidence of faculty participation and student race times.",
+    reviewer_name: "Marcus Vance",
+    file_name: "rover_race_finals.jpg",
+    created_at: "2026-08-29T11:30:00Z",
+  },
+  {
+    id: "ev-3",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    activity_title: "Campus AI Hackathon 2026",
+    evidence_type: "project_documentation",
+    caption: "GitHub Repositories, Pitch Slidedecks, and Winner Certificates",
+    description: "16 public repositories with commit logs and slide links.",
+    status: "under_review",
+    reviewer_comment: "Pending secondary review of code authenticity.",
+    reviewer_name: null,
+    file_name: "hackathon_submissions_archive.zip",
+    created_at: "2026-09-03T09:15:00Z",
+  },
+  {
+    id: "ev-4",
+    club_id: "2",
+    club_name: "Environmental Action Collective",
+    activity_title: "Native Campus Tree Planting Drive",
+    evidence_type: "certificate",
+    caption: "Arboretum Grounds Certification & Sapling Count Verification",
+    description: "Formal letter signed by Campus Horticultural Director certifying 165 trees planted.",
+    status: "verified",
+    reviewer_comment: "Verified with campus facilities management.",
+    reviewer_name: "Marcus Vance",
+    file_name: "arboretum_certification.pdf",
+    created_at: "2026-08-21T14:00:00Z",
+  },
+];
+
+export const MOCK_COLLABORATIONS = [
+  {
+    id: "col-1",
+    initiating_club: "Robotics & AI Society",
+    partner_club: "Environmental Action Collective",
+    title: "Solar-Powered Environmental Drone Sensing",
+    description: "Robotics society builds lightweight telemetry drones to monitor campus tree canopy health for the Environmental Collective.",
+    status: "confirmed",
+    confirmed_at: "2026-08-25T14:00:00Z",
+    bonus_points: 10,
+  },
+  {
+    id: "col-2",
+    initiating_club: "Filmmakers Guild",
+    partner_club: "Robotics & AI Society",
+    title: "Documentary on Student Autonomous Robotics",
+    description: "Filmmakers Guild plans a 15-minute documentary tracking student teams building combat and obstacle rovers.",
+    status: "pending",
+    confirmed_at: null,
+    bonus_points: 0,
+  },
+];
+
+export const MOCK_IMPACT_PROJECTS = [
+  {
+    id: "imp-1",
+    club_id: "1",
+    club_name: "Robotics & AI Society",
+    title: "STEM Outreach at Riverside Secondary School",
+    problem_statement:
+      "Local secondary students had zero hands-on exposure to robotics before choosing university subject streams.",
+    objective: "Run a termly robotics taster day with low-cost hardware kits for Year 10 and 11 students.",
+    activities_summary:
+      "Mentored 120 students across three weekend workshops, donating 10 micro:bit kits to their computer club.",
+    beneficiaries_description: "120 secondary pupils from low-income school catchments.",
+    estimated_beneficiaries_count: 120,
+    outcomes: "Post-visit survey: 68% reported increased interest in an engineering or computing degree pathway.",
+    lessons_learned: "Curriculum needs simpler step-by-step visual cheat sheets for absolute beginners.",
+    next_steps: "Formalize as an annual partnership with a dedicated budget line from the institution.",
+    metrics: { schools_reached: 1, kits_donated: 10, students_mentored: 120 },
+  },
+  {
+    id: "imp-2",
+    club_id: "2",
+    club_name: "Environmental Action Collective",
+    title: "Campus Food Composting Initiative",
+    problem_statement: "Dining halls generated 3.5 tonnes of organic waste monthly, all previously sent straight to landfill.",
+    objective: "Divert 50% of cafeteria kitchen pre-consumer waste into on-campus composting beds.",
+    activities_summary: "Installed four aerated compost tumblers and organized weekly student volunteer collection rotations.",
+    beneficiaries_description: "Campus community and local botanical gardens receiving nutrient-rich compost.",
+    estimated_beneficiaries_count: 450,
+    outcomes: "Diverted 1.8 tonnes of organic waste in first 60 days. Generated 400kg organic compost.",
+    lessons_learned: "Clearly label collection bins to avoid plastic contamination in compost tumblers.",
+    next_steps: "Expand collection bins to student residential quads.",
+    metrics: { tonnes_diverted: 1.8, volunteers_engaged: 35 },
+  },
+];
+
+export const MOCK_CRITERIA = [
+  { key: "activity", label: "Activity & Consistency", weight: 15, desc: "Meaningful activities, plan completion, consistency" },
+  { key: "participation", label: "Student Participation", weight: 15, desc: "Active participation, engagement, member involvement" },
+  { key: "attendance", label: "Attendance & Engagement", weight: 10, desc: "Verified event attendance and participation rate" },
+  { key: "impact", label: "Impact & Outcomes", weight: 15, desc: "Beneficiaries, measurable results, community outcomes" },
+  { key: "collaboration", label: "Collaboration", weight: 10, desc: "Confirmed joint projects and cross-club work" },
+  { key: "innovation", label: "Innovation & Creativity", weight: 10, desc: "New initiatives, originality, problem-solving" },
+  { key: "leadership", label: "Leadership & Governance", weight: 10, desc: "Planning, communication, accountability, organization" },
+  { key: "documentation", label: "Documentation & Accountability", weight: 5, desc: "Timely reports, accurate evidence and compliance" },
+  { key: "growth", label: "Growth & Improvement", weight: 5, desc: "Improvement from previous periods" },
+  { key: "wellbeing", label: "Inclusion & Student Well-being", weight: 5, desc: "Inclusive participation, safe/positive activities and well-being" },
+];
+
+export const MOCK_RANKINGS = [
+  { rank: 1, club: "Robotics & AI Society", category: "Technology", score: 91.2, trend: "+3.4%", health: "healthy", award_contender: "Club of the Year" },
+  { rank: 2, club: "Environmental Action Collective", category: "Sustainability", score: 88.5, trend: "+1.8%", health: "healthy", award_contender: "Best Community Impact" },
+  { rank: 3, club: "Chess & Strategy Circle", category: "Recreation", score: 87.0, trend: "+0.5%", health: "healthy", award_contender: "Most Active Club" },
+  { rank: 4, club: "Debate & Rhetoric Union", category: "Academic", score: 79.4, trend: "-2.1%", health: "needs_attention", award_contender: "None" },
+  { rank: 5, club: "Filmmakers Guild", category: "Arts & Culture", score: 68.0, trend: "New", health: "needs_attention", award_contender: "Emerging Club" },
+  { rank: 6, club: "Community Health Outreach", category: "Community Service", score: 62.1, trend: "-5.3%", health: "at_risk", award_contender: "None" },
+];
+
+export const MOCK_CCEA_AWARDS = [
+  {
+    id: "aw-1",
+    category: "Club of the Year",
+    description: "The institution's highest student honor recognizing excellence in governance, activities, and campus impact.",
+    finalists: ["Robotics & AI Society", "Environmental Action Collective", "Chess & Strategy Circle"],
+    winner: "Robotics & AI Society",
+    citation: "Exemplary consistency, inter-club collaboration, and impactful secondary STEM outreach.",
+    is_revealed: false,
+  },
+  {
+    id: "aw-2",
+    category: "Most Innovative Club",
+    description: "Recognizes the boldest, most creative technical or cultural programming on campus.",
+    finalists: ["Robotics & AI Society", "Filmmakers Guild"],
+    winner: "Robotics & AI Society",
+    citation: "Pioneering student-led machine learning bootcamps and autonomous rover competitions.",
+    is_revealed: true,
+  },
+  {
+    id: "aw-3",
+    category: "Best Collaboration",
+    description: "Celebrates outstanding cross-club partnerships that broke traditional faculty silos.",
+    finalists: ["Robotics & AI Society & Environmental Action Collective", "Debate Union & Health Outreach"],
+    winner: "Robotics & AI Society & Environmental Action Collective",
+    citation: "Building solar-powered environmental sensing drones combining hardware and conservation.",
+    is_revealed: false,
+  },
+  {
+    id: "aw-4",
+    category: "Best Community Impact",
+    description: "Highest measurable improvement brought to off-campus or local disadvantaged communities.",
+    finalists: ["Environmental Action Collective", "Community Health Outreach"],
+    winner: "Environmental Action Collective",
+    citation: "Diverting 1.8 tonnes of organic food waste and planting 165 native trees.",
+    is_revealed: false,
+  },
+];
+
+export const MOCK_HALL_OF_EXCELLENCE = [
+  {
+    year: "2025-2026",
+    award: "Club of the Year",
+    club_name: "Robotics & AI Society",
+    citation: "For pioneering campus-wide open workshops in artificial intelligence and winning first place at the National Autonomous Rover Games.",
+  },
+  {
+    year: "2025-2026",
+    award: "Best Community Impact",
+    club_name: "Community Health Outreach",
+    citation: "Screened over 1,200 local residents for preventable cardiovascular conditions in under-served community centers.",
+  },
+  {
+    year: "2024-2025",
+    award: "Club of the Year",
+    club_name: "Debate & Rhetoric Union",
+    citation: "Represented the institution at the World Universities Debating Championship finals with distinction.",
+  },
+];
+
+export const MOCK_AUDIT_LOGS = [
+  {
+    id: "aud-1",
+    timestamp: "2026-09-06T19:45:00Z",
+    actor: "Dr. Elena Rostova",
+    action: "criteria.configured",
+    target_model: "EvaluationCycle",
+    target_id: "CCEA Cycle 1",
+    reason: "Configured 10 criteria summing to 100% for CCEA Cycle 1.",
+    metadata: { total_weight: 100, version: 1 },
+  },
+  {
+    id: "aud-2",
+    timestamp: "2026-09-06T18:20:00Z",
+    actor: "Marcus Vance",
+    action: "evidence.verified",
+    target_model: "Evidence",
+    target_id: "ev-1",
+    reason: "Cross-referenced attendee signatures against active student enrollment database.",
+    metadata: { club: "Robotics & AI Society", status: "verified" },
+  },
+  {
+    id: "aud-3",
+    timestamp: "2026-09-06T16:10:00Z",
+    actor: "Marcus Vance",
+    action: "score.adjusted",
+    target_model: "Score",
+    target_id: "score-014-act",
+    reason: "Reviewed and validated by Committee Member Vance against verified evidence.",
+    metadata: { previous_value: 92.0, new_value: 90.0 },
+  },
+];
+
+export const MOCK_INSTITUTIONAL_ANALYTICS = {
+  total_active_clubs: 6,
+  recognized_clubs: 5,
+  pending_clubs: 1,
+  total_students_engaged: 1480,
+  average_attendance_rate: 89.4,
+  total_verified_activities: 38,
+  total_beneficiaries_reached: 2840,
+  verified_evidence_count: 142,
+  category_distribution: [
+    { category: "Technology", count: 1, percentage: 17 },
+    { category: "Sustainability", count: 1, percentage: 17 },
+    { category: "Academic", count: 1, percentage: 17 },
+    { category: "Arts & Culture", count: 1, percentage: 17 },
+    { category: "Community Service", count: 1, percentage: 17 },
+    { category: "Recreation", count: 1, percentage: 17 },
   ],
-  impact_projects: [
-    {
-      title: "STEM Outreach at Riverside Secondary",
-      problem_statement:
-        "Local secondary students had no hands-on exposure to robotics before choosing university subject streams.",
-      objective: "Run a termly robotics taster day for Year 11 students.",
-      beneficiaries_description: "120 secondary students across two visits.",
-      outcomes:
-        "Post-visit survey: 68% reported increased interest in a STEM degree pathway.",
-      next_steps: "Formalize as an annual partnership with a dedicated budget line.",
-    },
+  monthly_activity_trend: [
+    { month: "May", count: 12 },
+    { month: "Jun", count: 16 },
+    { month: "Jul", count: 24 },
+    { month: "Aug", count: 32 },
+    { month: "Sep", count: 38 },
   ],
 };
 
-export const MOCK_HEALTH_SUMMARY = [
-  { club: "Robotics & AI Society", status: "healthy", days_since_last_activity: 5, report_completion_rate: 1.0 },
-  { club: "Environmental Action Collective", status: "healthy", days_since_last_activity: 12, report_completion_rate: 1.0 },
-  { club: "Debate & Rhetoric Union", status: "needs_attention", days_since_last_activity: 34, report_completion_rate: 0.67 },
-  { club: "Filmmakers Guild", status: "needs_attention", days_since_last_activity: 28, report_completion_rate: 0.5 },
-  { club: "Community Health Outreach", status: "at_risk", days_since_last_activity: 71, report_completion_rate: 0.33 },
-  { club: "Chess & Strategy Circle", status: "healthy", days_since_last_activity: 3, report_completion_rate: 1.0 },
+// ---------------------------------------------------------------------------
+// Derived / composed exports required by legacy page imports
+// ---------------------------------------------------------------------------
+
+/** Portfolio object for Robotics & AI Society (club id "1") — used by ClubPortfolio page. */
+export const MOCK_PORTFOLIO = {
+  ...MOCK_CLUBS[0],
+  verified_activities: MOCK_ACTIVITIES.filter((a) => a.status === "verified"),
+  impact_projects: MOCK_IMPACT_PROJECTS,
+};
+
+/** Health-status summary rows — used by CommitteeCommandCenter. */
+export const MOCK_HEALTH_SUMMARY = MOCK_CLUBS.map((c) => ({
+  club: c.name,
+  status: c.health_status,
+  days_since_last_activity: Math.floor(Math.random() * 30) + 1,
+  report_completion_rate: c.current_score / 100,
+}));
+
+/** Pending review items queue — used by CommitteeCommandCenter. */
+export const MOCK_PENDING_REVIEWS = [
+  { criterion: "Evidence Review", club: "Robotics & AI Society", item: "Hackathon 2026 submissions archive — awaiting secondary code review." },
+  { criterion: "Activity Report", club: "Debate & Rhetoric Union", item: "September activity report not yet submitted (5 days overdue)." },
+  { criterion: "Collaboration Confirmation", club: "Filmmakers Guild", item: "Partnership request with Robotics Society pending partner approval." },
+  { criterion: "Score Validation", club: "Community Health Outreach", item: "AI-suggested score override of −5 pts pending committee sign-off." },
 ];
 
-export const MOCK_PENDING_REVIEWS = [
-  { club: "Environmental Action Collective", item: "3 evidence items awaiting review", criterion: "Impact & Outcomes" },
-  { club: "Robotics & AI Society", item: "Score recommendation ready for approval", criterion: "Activity & Consistency" },
-  { club: "Debate & Rhetoric Union", item: "Monthly report submitted late", criterion: "Documentation & Accountability" },
-];

@@ -5,18 +5,20 @@
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
+
   body {
-    @apply bg-fog text-ink font-body;
+    @apply bg-[#f4f8fd] text-slate-900 font-sans min-h-screen selection:bg-sky-500 selection:text-white;
   }
-  h1, h2, h3, h4 {
-    @apply font-display text-ink;
-  }
-  /* Visible keyboard focus everywhere, including custom components */
+
+  /* Clear focus ring for accessibility */
   :focus-visible {
-    outline: 2px solid #14213D;
+    outline: 2px solid #0284c7;
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 }
 
@@ -29,46 +31,29 @@
   }
 }
 
-@layer components {
-  /* The signature perforated tear-line, used sparingly and only where it
-     encodes something real: separating a passport card's identity block
-     from its detail block, the way a real ID booklet perforates a stub. */
-  .tear-line {
-    @apply relative;
-  }
-  .tear-line::after {
-    content: "";
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 1px;
-    background-image: radial-gradient(circle, #DCE1EA 1.5px, transparent 1.5px);
-    background-size: 10px 1px;
-    background-repeat: repeat-x;
-  }
-}
-@layer base {
-  html {
-    scroll-behavior: smooth;
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  body {
-    @apply bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-}
-
-/* Custom Sleek Scrollbar */
+/* Subtle clean scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94a3b8;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.sky-gradient-hero {
+  background: radial-gradient(100% 120% at 50% 0%, #e0f2fe 0%, #f0f9ff 45%, #ffffff 100%);
 }

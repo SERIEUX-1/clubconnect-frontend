@@ -1,13 +1,6 @@
+import React from "react";
 import { cn } from "../../lib/cn";
 
-/**
- * One badge component maps every status vocabulary in the product
- * (club recognition, evidence review, club health, score stage) onto the
- * same three-tone system: verified/settled (emerald), needs attention
- * (amber), at risk / rejected (brick), and neutral/in-progress (navy-soft).
- * Consistency here is what makes the whole app legible at a glance instead
- * of every screen inventing its own color meaning.
- */
 const TONE_BY_STATUS = {
   // clubs
   recognized: "verified",
@@ -16,7 +9,7 @@ const TONE_BY_STATUS = {
   dormant: "neutral",
   // evidence / activities
   verified: "verified",
-  submitted: "neutral",
+  submitted: "sky",
   under_review: "watch",
   rejected: "risk",
   revision_required: "watch",
@@ -26,22 +19,34 @@ const TONE_BY_STATUS = {
   needs_attention: "watch",
   at_risk: "risk",
   // score stage
-  ai_recommended: "neutral",
+  ai_recommended: "sky",
   final: "verified",
   // collaboration
   confirmed: "verified",
+  // membership
+  approved: "verified",
+  requested: "watch",
 };
 
 const TONE_STYLES = {
-  verified: "bg-verified-soft text-verified",
-  watch: "bg-watch-soft text-watch",
-  risk: "bg-risk-soft text-risk",
-  neutral: "bg-ink/5 text-ink-500",
+  verified: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+  watch: "bg-amber-50 text-amber-700 border-amber-200/80",
+  risk: "bg-rose-50 text-rose-700 border-rose-200/80",
+  sky: "bg-sky-50 text-sky-700 border-sky-200/80",
+  neutral: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+const DOT_STYLES = {
+  verified: "bg-emerald-500",
+  watch: "bg-amber-500",
+  risk: "bg-rose-500",
+  sky: "bg-sky-500",
+  neutral: "bg-slate-400",
 };
 
 const LABELS = {
   recognized: "Recognized",
-  pending: "Pending Recognition",
+  pending: "Pending",
   suspended: "Suspended",
   dormant: "Dormant",
   verified: "Verified",
@@ -54,28 +59,26 @@ const LABELS = {
   needs_attention: "Needs Attention",
   at_risk: "At Risk",
   ai_recommended: "AI Recommended",
-  final: "Final",
+  final: "Authorized Final",
   confirmed: "Confirmed",
+  approved: "Approved",
+  requested: "Requested",
 };
 
 export function StatusBadge({ status, className }) {
   const tone = TONE_BY_STATUS[status] || "neutral";
   const label = LABELS[status] || status;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium font-mono uppercase tracking-wide",
+        "inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border transition-colors",
         TONE_STYLES[tone],
         className
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", {
-        verified: "bg-verified",
-        watch: "bg-watch",
-        risk: "bg-risk",
-        neutral: "bg-ink-300",
-      }[tone])} />
-      {label}
+      <span className={cn("w-1.5 h-1.5 rounded-full", DOT_STYLES[tone])} />
+      <span>{label}</span>
     </span>
   );
 }

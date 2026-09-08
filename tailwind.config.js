@@ -4,50 +4,69 @@ export default {
   theme: {
     extend: {
       colors: {
+        sky: {
+          50: "#f0f9ff",
+          100: "#e0f2fe",
+          200: "#bae6fd",
+          300: "#7dd3fc",
+          400: "#38bdf8",
+          500: "#0ea5e9",
+          600: "#0284c7",
+          700: "#0369a1",
+          800: "#075985",
+          900: "#0c4a6e",
+          950: "#082f49",
+        },
         ink: {
-          DEFAULT: "#14213D", // primary institutional navy — headers, primary text
-          700: "#1C2E52",
-          500: "#2C4270",
-          300: "#7C8BAE",
+          DEFAULT: "#0f172a", // sleek modern slate-900
+          900: "#0f172a",
+          800: "#1e293b",
+          700: "#334155",
+          600: "#475569",
+          500: "#64748b",
+          400: "#94a3b8",
         },
         fog: {
-          DEFAULT: "#F2F4F7", // cool paper background — deliberately not warm cream
-          card: "#FFFFFF",
-          line: "#DCE1EA",
-        },
-        brass: {
-          DEFAULT: "#C9A227", // seal / verification / awards accent
-          dark: "#9C7D1B",
-          soft: "#F3E7C2",
+          DEFAULT: "#f8fafc",
+          card: "#ffffff",
+          line: "#e2e8f0",
         },
         verified: {
-          DEFAULT: "#1F7A5C",
-          soft: "#DCEFE8",
+          DEFAULT: "#10b981",
+          soft: "#ecfdf5",
+          border: "#a7f3d0",
         },
         risk: {
-          DEFAULT: "#B33F2E",
-          soft: "#F6E1DD",
+          DEFAULT: "#f43f5e",
+          soft: "#fff1f2",
+          border: "#fecdd3",
         },
         watch: {
-          DEFAULT: "#D98E04",
-          soft: "#FBEACB",
+          DEFAULT: "#f59e0b",
+          soft: "#fffbeb",
+          border: "#fde68a",
+        },
+        ccea: {
+          DEFAULT: "#8b5cf6",
+          soft: "#f5f3ff",
+          border: "#ddd6fe",
         },
       },
       fontFamily: {
-        display: ["Fraunces", "serif"],
-        body: ["IBM Plex Sans", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "monospace"],
-      },
-      backgroundImage: {
-        "perforation":
-          "repeating-linear-gradient(to bottom, transparent 0 6px, #DCE1EA 6px 8px)",
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["Inter", "-apple-system", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       boxShadow: {
-        card: "0 1px 2px rgba(20,33,61,0.06), 0 8px 24px -12px rgba(20,33,61,0.18)",
-        stamp: "0 2px 6px rgba(201,162,39,0.35)",
+        sky: "0 4px 20px -2px rgba(14, 165, 233, 0.08), 0 2px 6px -1px rgba(14, 165, 233, 0.04)",
+        "sky-lg": "0 10px 30px -4px rgba(14, 165, 233, 0.12), 0 4px 10px -2px rgba(14, 165, 233, 0.06)",
+        card: "0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 14px -2px rgba(15, 23, 42, 0.06)",
+        glow: "0 0 20px -4px rgba(14, 165, 233, 0.35)",
       },
       borderRadius: {
-        card: "14px",
+        card: "18px",
+        "2xl": "18px",
+        "3xl": "24px",
       },
     },
   },
