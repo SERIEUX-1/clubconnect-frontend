@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import { NavBar } from "./components/layout/NavBar";
 import { AuthModal } from "./components/auth/AuthModal";
 
@@ -19,24 +20,27 @@ import { CCEARevealMode } from "./pages/CCEARevealMode";
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen bg-[#f4f8fd]">
-        <NavBar />
-        <AuthModal />
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<DiscoverClubs />} />
-          <Route path="/clubs/:clubId" element={<ClubPortfolio />} />
+      <ToastProvider>
+        <div className="min-h-screen bg-[#f4f8fd]">
+          <NavBar />
+          <AuthModal />
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<DiscoverClubs />} />
+            <Route path="/clubs" element={<DiscoverClubs />} />
+            <Route path="/clubs/:clubId" element={<ClubPortfolio />} />
 
-          {/* Role dashboards */}
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/leader-dashboard" element={<LeaderDashboard />} />
-          <Route path="/committee-dashboard" element={<CommitteeDashboard />} />
-          <Route path="/command-center" element={<CommitteeCommandCenter />} />
-          <Route path="/ccea-reveal" element={<CCEARevealMode />} />
-          <Route path="/dean-dashboard" element={<DeanDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        </Routes>
-      </div>
+            {/* Role dashboards */}
+            <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route path="/leader-dashboard" element={<LeaderDashboard />} />
+            <Route path="/committee-dashboard" element={<CommitteeDashboard />} />
+            <Route path="/command-center" element={<CommitteeCommandCenter />} />
+            <Route path="/ccea-reveal" element={<CCEARevealMode />} />
+            <Route path="/dean-dashboard" element={<DeanDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          </Routes>
+        </div>
+      </ToastProvider>
     </AuthProvider>
   );
 }

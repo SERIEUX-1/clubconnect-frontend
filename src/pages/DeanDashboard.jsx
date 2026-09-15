@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../lib/api";
 import {
   BarChart3, Users, Building2, TrendingUp, Activity, Award,
-  ArrowUpRight, ArrowDownRight, Sparkles
+  ArrowUpRight, ArrowDownRight, Sparkles, Send, Download, Eye, Calendar
 } from "lucide-react";
+import { InstitutionalNoticeModal } from "../components/dean/InstitutionalNoticeModal";
+import { ClubDrilldownModal } from "../components/dean/ClubDrilldownModal";
 
 function MetricCard({ label, value, sub, trend, icon: Icon }) {
   const trendUp = trend && trend > 0;
@@ -27,11 +29,16 @@ function MetricCard({ label, value, sub, trend, icon: Icon }) {
 }
 
 export function DeanDashboard() {
-  const { user } = useAuth();
+  const { toast } = useToast();
   const [analytics, setAnalytics] = useState(null);
   const [rankings, setRankings] = useState([]);
   const [hallOfExcellence, setHallOfExcellence] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [academicCycle, setAcademicCycle] = useState("Cycle 1 (2025-2026)");
+
+  // Modals state
+  const [noticeModalOpen, setNoticeModalOpen] = useState(false);
+  const [selectedClubRanking, setSelectedClubRanking] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -47,16 +54,55 @@ export function DeanDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDownloadBrief = () => {
+    const briefContent = `CLUB CONNECT INSTITUTIONAL EXECUTIVE BRIEF\nCycle: ${academicCycle}\nGenerated: ${new Date().toLocaleString()}\n` +
+      `Total Active Clubs: ${analytics?.total_active_clubs || 24}\n` +
+      `Students Engaged: ${analytics?.total_students_engaged || 1480}\n` +
+      `Total Verified Activities: ${analytics?.total_verified_activities || 38}\n` +
+      `Average Attendance Rate: ${analytics?.average_attendance_rate || 89.4}%\n\n` +
+      `LEADERBOARD RANKINGS:\n` +
+      rankings.map(r => `#${r.rank} ${r.club} (${r.category}) - Score: ${r.score}`).join("\n");
+
+    const blob = new Blob([briefContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `CCEA_Executive_Brief_${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast.success("Executive Brief Downloaded", "Institutional leadership report generated successfully.");
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Hero */}
-      <div className="mb-8 rounded-3xl bg-gradient-to-r from-indigo-600 via-sky-600 to-blue-700 p-8 text-white shadow-xl shadow-sky-600/20 relative overflow-hidden">
+      <div className="mb-8 rounded-3xl bg-gradient-to-r from-indigo-700 via-sky-600 to-blue-700 p-8 text-white shadow-xl shadow-sky-600/20 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-white/10 to-transparent pointer-events-none" />
-        <p className="text-xs font-bold uppercase tracking-widest text-sky-200 mb-1">Dean / Institutional Admin</p>
-        <h1 className="text-3xl font-bold mb-1">Institutional Analytics</h1>
-        <p className="text-sky-100 text-sm">
-          Macro campus engagement trends, CCEA strategic insights, and institutional health overview.
-        </p>
+        <div className="relative z-10 max-w-xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-sky-200 mb-1">Dean / Institutional Admin</p>
+          <h1 className="text-3xl font-bold mb-1">Institutional Analytics</h1>
+          <p className="text-sky-100 text-sm">
+            Macro campus engagement trends, CCEA strategic insights, and institutional health overview.
+          </p>
+        </div>
+
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={handleDownloadBrief}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white text-xs font-semibold border border-white/20 transition-all shadow-sm"
+          >
+            <Download className="w-3.5 h-3.5 text-sky-200" />
+            <span>Download Brief</span>
+          </button>
+          <button
+            onClick={() => setNoticeModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white hover:bg-sky-50 text-indigo-900 text-xs font-bold shadow-md shadow-slate-950/20 active:scale-95 transition-all"
+          >
+            <Send className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Broadcast Notice</span>
+          </button>
+        </div>
       </div>
 
       {/* Key metrics */}
@@ -142,11 +188,16 @@ export function DeanDashboard() {
                     <th className="pb-3 pr-4 font-medium">Club</th>
                     <th className="pb-3 pr-4 font-medium">Score</th>
                     <th className="pb-3 font-medium">Trend</th>
+                    <th className="pb-3 font-medium text-right">Scorecard</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(loading ? [] : rankings).map((r) => (
-                    <tr key={r.rank} className="border-b border-slate-50 last:border-0">
+                    <tr
+                      key={r.rank}
+                      onClick={() => setSelectedClubRanking(r)}
+                      className="border-b border-slate-50 last:border-0 hover:bg-sky-50/50 cursor-pointer transition-colors group"
+                    >
                       <td className="py-3 pr-4">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
                           r.rank === 1 ? "bg-amber-100 text-amber-700" :
@@ -156,12 +207,18 @@ export function DeanDashboard() {
                         }`}>{r.rank}</span>
                       </td>
                       <td className="py-3 pr-4">
-                        <p className="font-medium text-slate-900">{r.club}</p>
+                        <p className="font-semibold text-slate-900 group-hover:text-sky-700 transition-colors">{r.club}</p>
                         <p className="text-[11px] text-slate-400">{r.category}</p>
                       </td>
                       <td className="py-3 pr-4 font-bold text-sky-700">{r.score}</td>
                       <td className={`py-3 text-xs font-semibold ${r.trend.startsWith("+") ? "text-emerald-600" : r.trend === "New" ? "text-sky-600" : "text-rose-500"}`}>
                         {r.trend}
+                      </td>
+                      <td className="py-3 text-right">
+                        <span className="text-xs text-slate-400 group-hover:text-sky-600 font-medium inline-flex items-center gap-1">
+                          <span>Inspect</span>
+                          <Eye className="w-3.5 h-3.5" />
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -216,6 +273,18 @@ export function DeanDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Interactive Modals */}
+      <InstitutionalNoticeModal
+        isOpen={noticeModalOpen}
+        onClose={() => setNoticeModalOpen(false)}
+      />
+
+      <ClubDrilldownModal
+        isOpen={!!selectedClubRanking}
+        clubRanking={selectedClubRanking}
+        onClose={() => setSelectedClubRanking(null)}
+      />
     </div>
   );
 }

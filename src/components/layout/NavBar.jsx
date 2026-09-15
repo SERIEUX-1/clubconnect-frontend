@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { MOCK_PERSONAS } from "../../data/mockClubs";
+import { dashboardPathForRole } from "../../lib/roles";
 import {
   Sparkles,
   Compass,
@@ -24,47 +25,12 @@ export function NavBar() {
   const role = user?.role || "student";
 
   // Dashboard path depending on active persona role
-  const getDashboardPath = () => {
-    switch (role) {
-      case "club_leader":
-        return "/leader-dashboard";
-      case "committee_member":
-        return "/committee-dashboard";
-      case "committee_head":
-        return "/command-center";
-      case "dean_admin":
-        return "/dean-dashboard";
-      case "system_admin":
-        return "/admin-dashboard";
-      default:
-        return "/student-dashboard";
-    }
-  };
+  const getDashboardPath = () => dashboardPathForRole(role);
 
   const handleSwitchPersona = async (targetRole) => {
     setRoleMenuOpen(false);
     await switchPersona(targetRole);
-    // Smoothly route to the newly selected persona's dashboard
-    switch (targetRole) {
-      case "club_leader":
-        navigate("/leader-dashboard");
-        break;
-      case "committee_member":
-        navigate("/committee-dashboard");
-        break;
-      case "committee_head":
-        navigate("/command-center");
-        break;
-      case "dean_admin":
-        navigate("/dean-dashboard");
-        break;
-      case "system_admin":
-        navigate("/admin-dashboard");
-        break;
-      default:
-        navigate("/student-dashboard");
-        break;
-    }
+    navigate(dashboardPathForRole(targetRole));
   };
 
   const currentPersona = MOCK_PERSONAS.find((p) => p.role === role) || MOCK_PERSONAS[0];
@@ -271,6 +237,7 @@ export function NavBar() {
                     onClick={() => {
                       setUserMenuOpen(false);
                       logout();
+                      navigate("/");
                     }}
                     className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center space-x-2"
                   >

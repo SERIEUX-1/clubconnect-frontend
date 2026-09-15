@@ -6,6 +6,9 @@ import {
   CalendarDays, Users, QrCode, CheckCircle2, Clock, Star, Sparkles,
   ArrowRight, BookOpen, Award
 } from "lucide-react";
+import { QRCheckInModal } from "../components/student/QRCheckInModal";
+import { AttendanceHistoryModal } from "../components/student/AttendanceHistoryModal";
+import { RankingsDrawerModal } from "../components/student/RankingsDrawerModal";
 
 function StatCard({ icon: Icon, label, value, color = "sky" }) {
   const colors = {
@@ -33,6 +36,13 @@ export function StudentDashboard() {
   const [events, setEvents] = useState([]);
   const [aiTip, setAiTip] = useState("");
   const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [rankingsModalOpen, setRankingsModalOpen] = useState(false);
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
 
   useEffect(() => {
     Promise.all([api.memberships.list(), api.events.list(), api.aiCoach.getFeedback()])
@@ -136,7 +146,13 @@ export function StudentDashboard() {
                       <p className="text-xs text-slate-400 mt-0.5">{evt.location} · {evt.club_name}</p>
                     </div>
                     {evt.check_in_open ? (
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 text-white text-[11px] font-bold rounded-full hover:bg-emerald-600 transition-colors shrink-0">
+                      <button
+                        onClick={() => {
+                          setSelectedEventId(evt.id);
+                          setQrModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-500 text-white text-[11px] font-bold rounded-full hover:bg-emerald-600 active:scale-95 transition-all shadow-xs shrink-0"
+                      >
                         <QrCode className="w-3.5 h-3.5" /> Check In
                       </button>
                     ) : (
@@ -182,12 +198,12 @@ export function StudentDashboard() {
             <p className="text-sm text-slate-600 leading-relaxed">
               The CCEA Reveal ceremony is approaching. Top clubs compete for <strong>Club of the Year</strong>, <strong>Best Collaboration</strong>, and more.
             </p>
-            <Link
-              to="/"
+            <button
+              onClick={() => setRankingsModalOpen(true)}
               className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-sky-600 hover:text-sky-700"
             >
               Browse club rankings <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            </button>
           </div>
 
           {/* Quick discover */}
@@ -199,17 +215,29 @@ export function StudentDashboard() {
                 <span>Discover & Join Clubs</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-sky-500" />
               </Link>
-              <button className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-emerald-50 text-sm text-slate-700 hover:text-emerald-700 transition-colors group">
+              <button
+                onClick={() => {
+                  setSelectedEventId(activeEvents[0]?.id || events[0]?.id || "evt-1");
+                  setQrModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-emerald-50 text-sm text-slate-700 hover:text-emerald-700 transition-colors group active:scale-[0.98]"
+              >
                 <QrCode className="w-4 h-4 text-emerald-500" />
                 <span>Scan QR Check-In</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-emerald-500" />
               </button>
-              <button className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-violet-50 text-sm text-slate-700 hover:text-violet-700 transition-colors group">
+              <button
+                onClick={() => setAttendanceModalOpen(true)}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-violet-50 text-sm text-slate-700 hover:text-violet-700 transition-colors group active:scale-[0.98]"
+              >
                 <CheckCircle2 className="w-4 h-4 text-violet-500" />
                 <span>View My Attendance</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-violet-500" />
               </button>
-              <button className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-amber-50 text-sm text-slate-700 hover:text-amber-700 transition-colors group">
+              <button
+                onClick={() => setRankingsModalOpen(true)}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-amber-50 text-sm text-slate-700 hover:text-amber-700 transition-colors group active:scale-[0.98]"
+              >
                 <Star className="w-4 h-4 text-amber-500" />
                 <span>View CCEA Rankings</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-amber-500" />
@@ -218,6 +246,39 @@ export function StudentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Interactive Modals */}
+      <QRCheckInModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        events={events}
+        defaultEventId={selectedEventId}
+        onCheckInSuccess={({ eventId, eventTitle, record }) => {
+          setAttendanceRecords((prev) => [
+            {
+              id: record.id || `att-${Date.now()}`,
+              event_title: eventTitle || "Campus Event",
+              club_name: "Campus Club",
+              date: new Date().toISOString(),
+              token_used: record.detail || "VERIFIED-PRESENCE",
+              status: "verified",
+              points: 2.0,
+            },
+            ...prev,
+          ]);
+        }}
+      />
+
+      <AttendanceHistoryModal
+        isOpen={attendanceModalOpen}
+        onClose={() => setAttendanceModalOpen(false)}
+        attendanceRecords={attendanceRecords}
+      />
+
+      <RankingsDrawerModal
+        isOpen={rankingsModalOpen}
+        onClose={() => setRankingsModalOpen(false)}
+      />
     </div>
   );
 }

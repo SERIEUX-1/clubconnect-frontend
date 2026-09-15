@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../lib/api";
+import confetti from "canvas-confetti";
 import {
   Trophy, BarChart3, Sliders, Eye, EyeOff, ChevronUp, ChevronDown,
-  Sparkles, ShieldCheck, Award
+  Sparkles, ShieldCheck, Award, RotateCcw, Download, CheckCircle2
 } from "lucide-react";
 
 const healthColors = {
@@ -13,11 +14,11 @@ const healthColors = {
 };
 
 export function CCEARevealMode() {
-  const { user } = useAuth();
+  const { toast } = useToast();
   const [awards, setAwards] = useState([]);
   const [rankings, setRankings] = useState([]);
   const [criteria, setCriteria] = useState([]);
-  const [revealed, setRevealed] = useState({});
+  const [revealedState, setRevealedState] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,11 +31,92 @@ export function CCEARevealMode() {
       .finally(() => setLoading(false));
   }, []);
 
-  const toggleReveal = (id) => {
-    setRevealedState((prev) => ({ ...prev, [id]: !prev[id] }));
+  const triggerWinnerConfetti = () => {
+    confetti({
+      particleCount: 100,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ["#F59E0B", "#10B981", "#0284C7", "#8B5CF6", "#EC4899"],
+    });
   };
 
-  const [revealedState, setRevealedState] = useState({});
+  const handleToggleAward = (award) => {
+    const currentState = revealedState[award.id] ?? award.is_revealed;
+    const nextState = !currentState;
+    setRevealedState((prev) => ({ ...prev, [award.id]: nextState }));
+
+    if (nextState) {
+      triggerWinnerConfetti();
+      toast.success(`Winner unveiled: ${award.winner} for ${award.category}!`);
+    } else {
+      toast.info(`Masked winner for ${award.category}.`);
+    }
+  };
+
+  const handleRevealAll = () => {
+    const allRevealed = {};
+    awards.forEach((a) => {
+      allRevealed[a.id] = true;
+    });
+    setRevealedState(allRevealed);
+
+    // Multi-burst celebratory confetti
+    const duration = 2.5 * 1000;
+    const end = Date.now() + duration;
+    const interval = setInterval(() => {
+      if (Date.now() > end) return clearInterval(interval);
+      confetti({
+        startVelocity: 35,
+        spread: 360,
+        ticks: 70,
+        origin: { x: Math.random(), y: Math.random() - 0.2 },
+        colors: ["#F59E0B", "#10B981", "#0284C7", "#8B5CF6", "#F43F5E"],
+      });
+    }, 250);
+
+    toast.success("Grand Ceremony: All CCEA Annual Award winners unveiled!");
+  };
+
+  const handleResetCeremony = () => {
+    const allHidden = {};
+    awards.forEach((a) => {
+      allHidden[a.id] = false;
+    });
+    setRevealedState(allHidden);
+    toast.info("Ceremony reveal state has been reset to rehearsal mode.");
+  };
+
+  const handleExportHonorsRoll = () => {
+    if (awards.length === 0) {
+      toast.warning("No award records available for export.");
+      return;
+    }
+
+    const headers = ["Award Category", "Winner", "Finalists", "Official Citation", "Status"];
+    const rows = awards.map((a) => {
+      const isRev = revealedState[a.id] ?? a.is_revealed;
+      return [
+        `"${a.category.replace(/"/g, '""')}"`,
+        `"${(isRev ? a.winner : "Confidential Until Unveiled").replace(/"/g, '""')}"`,
+        `"${(a.finalists || []).join(", ").replace(/"/g, '""')}"`,
+        `"${(a.citation || "").replace(/"/g, '""')}"`,
+        `"${isRev ? "Unveiled" : "Sealed"}"`,
+      ].join(",");
+    });
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `CCEA_Honors_Roll_${new Date().getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Official CCEA Honors Roll downloaded successfully.");
+  };
+
+  const totalRevealed = awards.filter((a) => revealedState[a.id] ?? a.is_revealed).length;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -54,9 +136,42 @@ export function CCEARevealMode() {
           <p className="text-slate-300 text-sm max-w-xl">
             Confidential award outcomes with reveal controls. Click "Reveal Winner" to unveil each award during the ceremony. Rankings and criteria weights are visible to committee heads only.
           </p>
-          <div className="mt-4 flex items-center gap-3">
-            <span className="text-xs text-slate-400">Logged in as:</span>
-            <span className="text-xs font-semibold text-white bg-white/10 px-3 py-1 rounded-full">{user?.full_name} · Committee Head</span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-700/60">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400">Ceremony Status:</span>
+              <span className="text-xs font-semibold text-white bg-white/10 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                {totalRevealed} of {awards.length} Award Categories Unveiled
+              </span>
+            </div>
+
+            {/* Ceremony Quick Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                id="btn-reveal-all-winners"
+                onClick={handleRevealAll}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-950 hover:from-amber-300 hover:to-yellow-300 shadow-md transition-all active:scale-95"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-900" />
+                Reveal All Winners
+              </button>
+              <button
+                id="btn-reset-ceremony"
+                onClick={handleResetCeremony}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 text-slate-200 hover:bg-slate-700 border border-slate-700 transition-all active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                Reset Rehearsal
+              </button>
+              <button
+                id="btn-export-honors-roll"
+                onClick={handleExportHonorsRoll}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-sky-500/20 text-sky-200 hover:bg-sky-500/30 border border-sky-400/30 transition-all active:scale-95"
+              >
+                <Download className="w-3.5 h-3.5 text-sky-300" />
+                Export Honors Roll (CSV)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -64,9 +179,14 @@ export function CCEARevealMode() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Awards reveal column */}
         <div className="lg:col-span-2 space-y-4">
-          <h2 className="font-bold text-slate-800 flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-500" /> Award Outcomes
-          </h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-bold text-slate-800 flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-500" /> Award Outcomes
+            </h2>
+            <span className="text-xs font-medium text-slate-500">
+              Click individual awards to unveil
+            </span>
+          </div>
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-2xl border border-slate-100 h-36 animate-pulse" />)}
@@ -77,26 +197,35 @@ export function CCEARevealMode() {
               return (
                 <div
                   key={award.id}
-                  className={`rounded-2xl border shadow-sm overflow-hidden transition-all ${
-                    isRevealed ? "border-amber-200 shadow-amber-100" : "border-slate-100"
+                  className={`rounded-2xl border shadow-sm overflow-hidden transition-all duration-300 ${
+                    isRevealed
+                      ? "border-amber-300 bg-gradient-to-r from-amber-50/90 via-yellow-50/80 to-amber-50/60 shadow-md ring-1 ring-amber-200"
+                      : "border-slate-200/80 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <div className={`p-5 ${isRevealed ? "bg-gradient-to-r from-amber-50 to-yellow-50" : "bg-white"}`}>
+                  <div className="p-5">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
-                        <p className="font-bold text-slate-900">{award.category}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{award.description}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-slate-900">{award.category}</p>
+                          {isRevealed && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 uppercase tracking-wider">
+                              <CheckCircle2 className="w-3 h-3 text-amber-800" /> Unveiled
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">{award.description}</p>
                       </div>
                       <button
-                        onClick={() => setRevealedState((p) => ({ ...p, [award.id]: !isRevealed }))}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                        onClick={() => handleToggleAward(award)}
+                        className={`shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all shadow-xs active:scale-95 ${
                           isRevealed
-                            ? "bg-amber-400 text-amber-900 hover:bg-amber-500"
-                            : "bg-slate-900 text-white hover:bg-slate-700"
+                            ? "bg-amber-400 text-amber-950 hover:bg-amber-500 ring-2 ring-amber-300/60"
+                            : "bg-slate-900 text-white hover:bg-slate-800"
                         }`}
                       >
                         {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        {isRevealed ? "Hide" : "Reveal Winner"}
+                        {isRevealed ? "Hide Outcome" : "Reveal Winner"}
                       </button>
                     </div>
 

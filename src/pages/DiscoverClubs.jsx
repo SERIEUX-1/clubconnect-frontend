@@ -1,20 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PassportCard } from "../components/ui/PassportCard";
 import { MOCK_CLUBS } from "../data/mockClubs";
-
-const CATEGORIES = ["All", ...new Set(MOCK_CLUBS.map((c) => c.category))];
+import { api } from "../lib/api";
 
 export function DiscoverClubs() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
+  const [clubs, setClubs] = useState(MOCK_CLUBS);
+
+  useEffect(() => {
+    api.clubs.list().then((list) => {
+      if (Array.isArray(list) && list.length > 0) setClubs(list);
+    });
+  }, []);
+
+  const CATEGORIES = ["All", ...new Set(clubs.map((c) => c.category))];
 
   const filtered = useMemo(() => {
-    return MOCK_CLUBS.filter((c) => {
+    return clubs.filter((c) => {
       const matchesQuery = c.name.toLowerCase().includes(query.toLowerCase());
       const matchesCategory = category === "All" || c.category === category;
       return matchesQuery && matchesCategory;
     });
-  }, [query, category]);
+  }, [query, category, clubs]);
 
   return (
     <div>

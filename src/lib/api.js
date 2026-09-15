@@ -40,18 +40,22 @@ export function getStoredUser() {
   }
 }
 
-async function request(path, { method = "GET", body, auth = true } = {}) {
+async function request(path, { method = "GET", body, auth = true, timeoutMs = 2500 } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth) {
     const token = getAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
 
     if (!response.ok) {
@@ -63,6 +67,8 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
   } catch (err) {
     console.warn(`API request to ${path} failed or network offline, falling back:`, err.message);
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -81,9 +87,16 @@ export const api = {
         }
       } catch (err) {
         // Fallback demo match
-        const found = MOCK_PERSONAS.find(
-          (p) => (p.email.toLowerCase() === username.toLowerCase() || p.role === username)
-        );
+        const needle = username.toLowerCase().trim();
+        const found = MOCK_PERSONAS.find((p) => {
+          const local = p.email.split("@")[0].toLowerCase();
+          return (
+            p.email.toLowerCase() === needle ||
+            p.role === username ||
+            local === needle ||
+            p.name.toLowerCase() === needle
+          );
+        });
         if (found) {
           const mockUser = {
             id: found.student_id,
@@ -93,6 +106,7 @@ export const api = {
             role: found.role,
             student_id: found.student_id,
             club_id: found.club_id,
+            club_name: found.club_name,
           };
           setAuthSession("mock-token-" + found.role, mockUser);
           return { access: "mock-token-" + found.role, user: mockUser };
@@ -158,6 +172,7 @@ export const api = {
         role: persona.role,
         student_id: persona.student_id,
         club_id: persona.club_id,
+        club_name: persona.club_name,
       };
       setAuthSession("mock-token-" + persona.role, mockUser);
       return mockUser;

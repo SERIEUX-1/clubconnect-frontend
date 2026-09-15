@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { StatusBadge } from "./StatusBadge";
+import { ArrowUpRight, ShieldCheck } from "lucide-react";
 
 /**
  * The signature element (per the design plan): a club rendered as an ID
@@ -24,8 +25,9 @@ export function PassportCard({ club, className }) {
     <Link
       to={`/clubs/${club.id}`}
       className={cn(
-        "group relative block overflow-hidden rounded-card bg-fog-card shadow-card",
-        "transition-transform duration-200 hover:-translate-y-1",
+        "group relative block overflow-hidden rounded-2xl bg-white border border-slate-200/80 shadow-xs",
+        "transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-sky-300 hover:ring-1 hover:ring-sky-200",
+        "focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500",
         className
       )}
     >
@@ -33,25 +35,25 @@ export function PassportCard({ club, className }) {
         <div
           className={cn(
             "pointer-events-none absolute right-4 top-4 z-10 select-none",
-            "rotate-[10deg] rounded-md border-2 border-brass px-2.5 py-1",
-            "font-mono text-[10px] font-semibold uppercase tracking-widest text-brass-dark",
-            "shadow-stamp opacity-90"
+            "rotate-[8deg] rounded-md border-2 border-amber-600/80 bg-amber-50/90 px-2 py-0.5",
+            "font-mono text-[10px] font-bold uppercase tracking-widest text-amber-900",
+            "shadow-xs opacity-95 flex items-center gap-1"
           )}
         >
-          Verified
+          <ShieldCheck className="w-3 h-3 text-amber-700" /> Verified
         </div>
       )}
 
       {/* Identity block */}
       <div className="flex items-center gap-4 px-5 pb-5 pt-6">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-ink font-display text-lg text-fog">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 font-display text-lg font-bold text-white shadow-md group-hover:scale-105 transition-transform">
           {club.logo_initial || club.name.charAt(0)}
         </div>
-        <div className="min-w-0">
-          <h3 className="truncate font-display text-lg font-semibold leading-tight text-ink">
+        <div className="min-w-0 pr-16">
+          <h3 className="truncate font-display text-base font-bold leading-tight text-slate-900 group-hover:text-sky-700 transition-colors">
             {club.name}
           </h3>
-          <p className="text-xs uppercase tracking-wide text-ink-300">{club.category}</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400 font-medium mt-0.5">{club.category}</p>
         </div>
       </div>
 
@@ -60,12 +62,17 @@ export function PassportCard({ club, className }) {
 
       {/* Detail block */}
       <div className="space-y-3 px-5 py-4">
-        <p className="line-clamp-2 text-sm text-ink-500">{club.description}</p>
-        <div className="flex items-center justify-between pt-1">
-          <span className="font-mono text-[11px] tracking-widest text-ink-300">
+        <p className="line-clamp-2 text-sm text-slate-600 leading-relaxed">{club.description}</p>
+        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+          <span className="font-mono text-[11px] font-medium tracking-wider text-slate-400">
             {passportNumber}
           </span>
-          <StatusBadge status={club.status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge status={club.status} />
+            <span className="text-[11px] font-semibold text-sky-600 opacity-0 group-hover:opacity-100 flex items-center transition-all translate-x-1 group-hover:translate-x-0">
+              View <ArrowUpRight className="w-3 h-3 ml-0.5" />
+            </span>
+          </div>
         </div>
       </div>
     </Link>

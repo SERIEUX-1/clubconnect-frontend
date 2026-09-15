@@ -57,3 +57,22 @@
 .sky-gradient-hero {
   background: radial-gradient(100% 120% at 50% 0%, #e0f2fe 0%, #f0f9ff 45%, #ffffff 100%);
 }
+
+@keyframes shrinkWidth {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Passport-card perforated stub, matching the ID-booklet metaphor */
+.tear-line {
+  height: 10px;
+  background-image: radial-gradient(circle at 4px 5px, #e2e8f0 2.5px, transparent 2.7px);
+  background-size: 10px 10px;
+  background-repeat: repeat-x;
+  background-position: left center;
+}
+

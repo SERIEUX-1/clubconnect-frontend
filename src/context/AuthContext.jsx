@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api, clearAuthSession, getStoredUser, setAuthSession } from "../lib/api";
 import { MOCK_PERSONAS } from "../data/mockClubs";
+import { personaToUser } from "../lib/roles";
 
 const AuthContext = createContext(null);
 
@@ -17,15 +18,7 @@ export function AuthProvider({ children }) {
       setUser(stored);
     } else {
       // Default to Student persona so visitor can immediately explore authenticated features
-      const defaultStudent = MOCK_PERSONAS[0];
-      const initialUser = {
-        id: defaultStudent.student_id,
-        username: defaultStudent.email.split("@")[0],
-        email: defaultStudent.email,
-        full_name: defaultStudent.name,
-        role: defaultStudent.role,
-        student_id: defaultStudent.student_id,
-      };
+      const initialUser = personaToUser(MOCK_PERSONAS[0]);
       setUser(initialUser);
       setAuthSession("initial-demo-token", initialUser);
     }
@@ -71,15 +64,7 @@ export function AuthProvider({ children }) {
       return updatedUser;
     } catch (err) {
       const p = MOCK_PERSONAS.find((x) => x.role === role) || MOCK_PERSONAS[0];
-      const fallbackUser = {
-        id: p.student_id,
-        username: p.email.split("@")[0],
-        email: p.email,
-        full_name: p.name,
-        role: p.role,
-        student_id: p.student_id,
-        club_id: p.club_id,
-      };
+      const fallbackUser = personaToUser(p);
       setAuthSession("mock-token-" + p.role, fallbackUser);
       setUser(fallbackUser);
       setAuthModalOpen(false);

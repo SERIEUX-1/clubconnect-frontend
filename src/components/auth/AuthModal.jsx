@@ -1,10 +1,13 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { MOCK_PERSONAS } from "../../data/mockClubs";
+import { dashboardPathForRole } from "../../lib/roles";
 import { X, Sparkles, LogIn, UserPlus, Shield, CheckCircle2, ArrowRight } from "lucide-react";
 
 export function AuthModal() {
   const { authModalOpen, authModalTab, setAuthModalTab, closeAuthModal, login, register, switchPersona } = useAuth();
+  const navigate = useNavigate();
   
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +30,8 @@ export function AuthModal() {
     setError("");
     setSubmitting(true);
     try {
-      await login(username, password);
+      const loggedIn = await login(username, password);
+      if (loggedIn?.role) navigate(dashboardPathForRole(loggedIn.role));
     } catch (err) {
       setError(err.message || "Invalid credentials. Try using one of the 1-Click Demo accounts.");
     } finally {
@@ -40,7 +44,8 @@ export function AuthModal() {
     setError("");
     setSubmitting(true);
     try {
-      await register(regData);
+      const created = await register(regData);
+      navigate(dashboardPathForRole(created?.role || "student"));
     } catch (err) {
       setError(err.message || "Registration failed. Please check your fields.");
     } finally {
@@ -52,6 +57,7 @@ export function AuthModal() {
     setSubmitting(true);
     try {
       await switchPersona(role);
+      navigate(dashboardPathForRole(role));
     } finally {
       setSubmitting(false);
     }

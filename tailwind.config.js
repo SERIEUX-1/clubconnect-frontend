@@ -46,6 +46,10 @@ export default {
           soft: "#fffbeb",
           border: "#fde68a",
         },
+        brass: {
+          DEFAULT: "#C9A227",
+          dark: "#A6851F",
+        },
         ccea: {
           DEFAULT: "#8b5cf6",
           soft: "#f5f3ff",
@@ -53,8 +57,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["Inter", "-apple-system", "sans-serif"],
+        sans: ["IBM Plex Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["Fraunces", "IBM Plex Sans", "Georgia", "serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       boxShadow: {
