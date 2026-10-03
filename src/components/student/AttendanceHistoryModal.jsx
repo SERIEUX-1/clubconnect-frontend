@@ -13,7 +13,7 @@ export function AttendanceHistoryModal({ isOpen, onClose, attendanceRecords = []
     {
       id: "att-101",
       event_title: "Weekly AI Lab & Robot Build Session",
-      club_name: "Robotics & AI Society",
+      club_name: "Robotics club",
       date: "2026-09-08T15:00:00Z",
       token_used: "QR-ROBOTICS-2026-ACTIVE",
       status: "verified",
@@ -22,7 +22,7 @@ export function AttendanceHistoryModal({ isOpen, onClose, attendanceRecords = []
     {
       id: "att-102",
       event_title: "Beginner Machine Learning Bootcamp",
-      club_name: "Robotics & AI Society",
+      club_name: "Robotics club",
       date: "2026-08-15T09:00:00Z",
       token_used: "QR-ML-BOOTCAMP-PASS",
       status: "verified",
@@ -31,7 +31,7 @@ export function AttendanceHistoryModal({ isOpen, onClose, attendanceRecords = []
     {
       id: "att-103",
       event_title: "Native Campus Tree Planting Drive",
-      club_name: "Environmental Action Collective",
+      club_name: "Alchemists Gardening Club",
       date: "2026-08-20T08:30:00Z",
       token_used: "QR-ENV-TREES-2026",
       status: "verified",
@@ -40,7 +40,7 @@ export function AttendanceHistoryModal({ isOpen, onClose, attendanceRecords = []
     {
       id: "att-104",
       event_title: "Campus AI Hackathon 2026",
-      club_name: "Robotics & AI Society",
+      club_name: "Robotics club",
       date: "2026-09-02T10:00:00Z",
       token_used: "QR-HACK-PASS-2026",
       status: "verified",

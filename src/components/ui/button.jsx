@@ -1,8 +1,8 @@
 import { cn } from "../../lib/cn";
 
 const VARIANTS = {
-  primary: "bg-ink text-fog hover:bg-ink-700 active:bg-ink-700",
-  brass: "bg-brass text-ink hover:bg-brass-dark hover:text-fog",
+  primary: "sun-cta text-white hover:opacity-95",
+  brass: "bg-sun text-sky-950 hover:bg-amber-400",
   ghost: "bg-transparent text-ink hover:bg-fog-line/60",
   outline: "bg-transparent text-ink border border-ink/20 hover:border-ink/40",
 };

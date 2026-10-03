@@ -32,13 +32,27 @@ export function SubmitReportModal({ isOpen, onClose, clubId, clubName, onSubmitS
       const payload = {
         ...formData,
         club_id: clubId || "1",
-        club_name: clubName || "Robotics & AI Society",
+        club_name: clubName || "Robotics club",
         expected_participation: Number(formData.expected_participation),
         actual_participation: Number(formData.actual_participation),
         status: "submitted",
       };
 
       const result = await api.activities.create(payload);
+      try {
+        const now = new Date();
+        await api.reporting.submit({
+          club: clubId,
+          period_year: now.getFullYear(),
+          period_month: now.getMonth() + 1,
+          summary: formData.objective,
+          highlights: formData.report_text,
+          challenges: formData.lessons_learned,
+          status: "submitted",
+        });
+      } catch {
+        // Activity report still succeeded.
+      }
       toast.success(
         "Activity Report Submitted!",
         "Report queued for Committee Review. Points applied tentatively to CCEA cycle."

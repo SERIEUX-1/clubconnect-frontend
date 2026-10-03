@@ -58,7 +58,7 @@ const LABELS = {
   healthy: "Healthy",
   needs_attention: "Needs Attention",
   at_risk: "At Risk",
-  ai_recommended: "AI Recommended",
+  ai_recommended: "Copilot recommended",
   final: "Authorized Final",
   confirmed: "Confirmed",
   approved: "Approved",

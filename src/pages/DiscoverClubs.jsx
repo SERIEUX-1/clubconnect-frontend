@@ -1,20 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { PassportCard } from "../components/ui/PassportCard";
-import { MOCK_CLUBS } from "../data/mockClubs";
+import { InstitutionMark } from "../components/brand/ClubConnectLogo";
+import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function DiscoverClubs() {
+  const { user } = useAuth();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
-  const [clubs, setClubs] = useState(MOCK_CLUBS);
+  const [clubs, setClubs] = useState([]);
+  const campus = user?.institution;
 
   useEffect(() => {
     api.clubs.list().then((list) => {
-      if (Array.isArray(list) && list.length > 0) setClubs(list);
+      if (Array.isArray(list)) setClubs(list);
     });
   }, []);
 
-  const CATEGORIES = ["All", ...new Set(clubs.map((c) => c.category))];
+  const CATEGORIES = ["All", ...new Set(clubs.map((c) => c.category).filter(Boolean))];
 
   const filtered = useMemo(() => {
     return clubs.filter((c) => {
@@ -26,31 +31,38 @@ export function DiscoverClubs() {
 
   return (
     <div>
-      {/* Hero: the thesis. A passport cover, not a generic gradient headline. */}
-      <section className="border-b border-fog-line bg-ink">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-brass">
-            Institutional Digital Ecosystem
-          </p>
-          <h1 className="mt-4 max-w-2xl font-display text-5xl font-semibold leading-[1.05] text-fog">
-            One campus.
-            <br />
-            Every club, verified.
-          </h1>
-          <p className="mt-5 max-w-lg text-base leading-relaxed text-fog/70">
-            Every recognized club carries a living digital passport — its
-            activities, evidence, and impact, documented and verified in
-            one place instead of scattered across chats and folders.
-          </p>
+      <section className="morning-hero">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-6 py-12 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-5">
+            {campus?.logo_url ? (
+              <h1 className="m-0 shrink-0">
+                <InstitutionMark institution={campus} height={96} />
+              </h1>
+            ) : (
+              <h1 className="font-display text-4xl font-medium leading-[1.08] text-[#1e3a5f] sm:text-5xl">
+                {campus?.short_name || t("discover.clubs")}
+              </h1>
+            )}
+            <div>
+              <p className="max-w-lg text-sm leading-relaxed text-slate-600">
+                {t("discover.signedIn", {
+                  name: user?.full_name || "member",
+                  role: String(user?.role || "").replace("_", " "),
+                })}
+              </p>
+              <p className="mt-4 max-w-xl font-display text-xl italic leading-snug text-[#1d4e89]">
+                {t("landing.missionLine")}
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Directory */}
       <section className="mx-auto max-w-6xl px-6 py-12">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="font-display text-2xl font-semibold text-ink">Discover clubs</h2>
-            <p className="text-sm text-ink-500">{filtered.length} clubs found</p>
+            <h2 className="font-display text-3xl font-medium text-[#1e3a5f]">{t("discover.title")}</h2>
+            <p className="text-sm text-slate-500">{t("discover.count", { n: filtered.length })}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
@@ -60,11 +72,11 @@ export function DiscoverClubs() {
                 className={
                   "rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors " +
                   (category === cat
-                    ? "border-ink bg-ink text-fog"
-                    : "border-fog-line bg-fog-card text-ink-500 hover:border-ink/30")
+                    ? "border-sky-600 bg-sky-600 text-white"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-sky-300")
                 }
               >
-                {cat}
+                {cat === "All" ? t("discover.all") : cat}
               </button>
             ))}
           </div>
@@ -72,19 +84,17 @@ export function DiscoverClubs() {
 
         <input
           type="search"
-          placeholder="Search clubs by name…"
+          placeholder={t("discover.search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="mb-8 w-full max-w-sm rounded-full border border-fog-line bg-fog-card px-4 py-2.5 text-sm text-ink placeholder:text-ink-300"
-          aria-label="Search clubs"
+          className="mb-8 w-full max-w-sm rounded-full border border-amber-100 bg-white/80 px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 shadow-sm backdrop-blur-sm"
+          aria-label={t("discover.search")}
         />
 
         {filtered.length === 0 ? (
-          <div className="rounded-card border border-dashed border-fog-line bg-fog-card px-8 py-16 text-center">
-            <p className="font-display text-lg text-ink">No clubs match that search.</p>
-            <p className="mt-1 text-sm text-ink-500">
-              Try a different name, or browse another category above.
-            </p>
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-8 py-16 text-center">
+            <p className="text-lg text-slate-900">{t("discover.empty")}</p>
+            <p className="mt-1 text-sm text-slate-500">{t("discover.emptyHint")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

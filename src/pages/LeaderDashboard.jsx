@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { api } from "../lib/api";
 import {
-  FileText, Upload, Users, CalendarPlus, Handshake, Sparkles,
-  CheckCircle2, Clock, ArrowRight, QrCode, BarChart3, PlusCircle, Copy
+  FileText, Upload, Users, CalendarPlus,   Handshake, Sparkles,
+  CheckCircle2, Clock, ArrowRight, QrCode, BarChart3, PlusCircle, Copy, PlayCircle, Repeat
 } from "lucide-react";
 import { SubmitReportModal } from "../components/leader/SubmitReportModal";
 import { ScheduleEventModal } from "../components/leader/ScheduleEventModal";
 import { UploadEvidenceModal } from "../components/leader/UploadEvidenceModal";
+import { PublishWatchModal } from "../components/leader/PublishWatchModal";
 import { ProposeCollabModal } from "../components/leader/ProposeCollabModal";
+import { HandoverModal } from "../components/leader/HandoverModal";
+import { ConceptNoteModal } from "../components/leader/ConceptNoteModal";
+import { DeclareClubsModal } from "../components/student/DeclareClubsModal";
+import { useMembershipWindow } from "../hooks/useMembershipWindow";
 
 function ActionCard({ icon: Icon, label, desc, color = "sky", onClick }) {
   const colors = {
-    sky: "from-sky-500 to-blue-600 shadow-sky-500/25",
+    sky: "from-sky-500 to-amber-400 shadow-sky-500/25",
     emerald: "from-emerald-500 to-teal-600 shadow-emerald-500/25",
     violet: "from-violet-500 to-purple-600 shadow-violet-500/25",
     amber: "from-amber-500 to-orange-500 shadow-amber-500/25",
@@ -46,21 +52,56 @@ export function LeaderDashboard() {
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [evidenceModalOpen, setEvidenceModalOpen] = useState(false);
   const [collabModalOpen, setCollabModalOpen] = useState(false);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [handoverModalOpen, setHandoverModalOpen] = useState(false);
+  const [conceptNoteOpen, setConceptNoteOpen] = useState(false);
+  const [declareOpen, setDeclareOpen] = useState(false);
+  const { open: censusOpen, loading: censusLoading } = useMembershipWindow();
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [committeeRoster, setCommitteeRoster] = useState([]);
+  const [clubBudget, setClubBudget] = useState(null);
 
-  const clubId = user?.club_id || "1";
+  const clubId = user?.led_clubs?.[0] || user?.club_id || user?.assigned_clubs?.[0];
+
+  useEffect(() => {
+    const onCopilot = (event) => {
+      const action = event.detail?.action;
+      if (action === "open_submit_report") setReportModalOpen(true);
+      if (action === "open_schedule_event") setEventModalOpen(true);
+      if (action === "open_upload_evidence") setEvidenceModalOpen(true);
+      if (action === "open_publish_watch") setPublishModalOpen(true);
+      if (action === "open_propose_collab") setCollabModalOpen(true);
+    };
+    window.addEventListener("cc-copilot-action", onCopilot);
+    return () => window.removeEventListener("cc-copilot-action", onCopilot);
+  }, []);
 
   useEffect(() => {
     Promise.all([
       api.activities.list(`?club=${clubId}`),
       api.events.list(),
       api.collaborations.list(),
-      api.aiCoach.getFeedback(clubId),
+      api.copilot.brief(clubId),
+      api.memberships.list(),
+      api.memberships.myBudget().catch(() => null),
     ])
-      .then(([a, e, c, ai]) => {
+      .then(([a, e, c, ai, members, budget]) => {
         setActivities(Array.isArray(a) ? a.slice(0, 5) : []);
         setEvents(Array.isArray(e) ? e.filter((ev) => ev.club_id === clubId).slice(0, 4) : []);
         setCollaborations(Array.isArray(c) ? c.slice(0, 3) : []);
         setAiTip(ai?.feedback || "");
+        setJoinRequests(Array.isArray(members) ? members.filter((m) => m.status === "requested") : []);
+        setCommitteeRoster(
+          Array.isArray(members)
+            ? members.filter(
+                (m) =>
+                  String(m.club) === String(clubId) &&
+                  (m.role === "leader" || m.role === "officer") &&
+                  m.status === "approved"
+              )
+            : []
+        );
+        setClubBudget(budget);
       })
       .finally(() => setLoading(false));
   }, [clubId]);
@@ -71,15 +112,48 @@ export function LeaderDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Hero */}
-      <div className="mb-8 rounded-3xl overflow-hidden relative bg-gradient-to-r from-sky-600 via-sky-500 to-blue-600 p-8 text-white shadow-lg shadow-sky-500/20">
+      <div className="cc-dusk relative mb-8 overflow-hidden rounded-3xl p-8 text-white shadow-lg">
         <div className="relative z-10">
           <p className="text-xs font-bold uppercase tracking-widest text-sky-200 mb-1">Club Leader Dashboard</p>
           <h1 className="text-3xl font-bold mb-1">
             {user?.full_name?.split(" ")[0]}'s Command Panel
           </h1>
           <p className="text-sky-100 text-sm">
-            Submit reports, manage events & QR tokens, upload evidence, and track your club's CCEA standing.
+            Submit reports, publish films for the campus to watch, manage events, and track CCEA standing.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setPublishModalOpen(true)}
+              className="inline-flex rounded-full bg-amber-400 px-4 py-2 text-xs font-bold text-slate-900 hover:bg-amber-300"
+            >
+              Publish videos & photos
+            </button>
+            {clubId && (
+              <Link
+                to={`/clubs/${clubId}`}
+                className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-bold text-white hover:bg-white/25"
+              >
+                Open the campus club page
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => setDeclareOpen(true)}
+              disabled={!censusOpen}
+              className={`inline-flex rounded-full px-4 py-2 text-xs font-bold ${
+                censusOpen
+                  ? "bg-white text-slate-900 hover:bg-sky-50"
+                  : "cursor-not-allowed bg-white/10 text-white/60"
+              }`}
+            >
+              {censusOpen
+                ? "Send clubs I belong to"
+                : censusLoading
+                  ? "Checking membership window…"
+                  : "Membership requests closed"}
+            </button>
+          </div>
         </div>
         <div className="absolute right-8 top-1/2 -translate-y-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none" />
       </div>
@@ -105,7 +179,14 @@ export function LeaderDashboard() {
           {/* Quick actions */}
           <div>
             <h2 className="font-bold text-slate-800 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <ActionCard
+                icon={PlayCircle}
+                label="Publish to campus"
+                desc="Videos & photos on your club page"
+                color="sky"
+                onClick={() => setPublishModalOpen(true)}
+              />
               <ActionCard
                 icon={FileText}
                 label="Submit Report"
@@ -122,8 +203,8 @@ export function LeaderDashboard() {
               />
               <ActionCard
                 icon={Upload}
-                label="Upload Evidence"
-                desc="Photos, PDFs, certificates"
+                label="Committee evidence"
+                desc="Proof for CCEA review, not the public page"
                 color="violet"
                 onClick={() => setEvidenceModalOpen(true)}
               />
@@ -133,6 +214,20 @@ export function LeaderDashboard() {
                 desc="Initiate cross-club partnership"
                 color="amber"
                 onClick={() => setCollabModalOpen(true)}
+              />
+              <ActionCard
+                icon={Repeat}
+                label="Handover"
+                desc="Send the full committee slate to the Committee Head"
+                color="violet"
+                onClick={() => setHandoverModalOpen(true)}
+              />
+              <ActionCard
+                icon={FileText}
+                label="Concept note"
+                desc="Request a share of this year's membership grant"
+                color="amber"
+                onClick={() => setConceptNoteOpen(true)}
               />
             </div>
           </div>
@@ -227,11 +322,11 @@ export function LeaderDashboard() {
 
         {/* Sidebar */}
         <div className="space-y-5">
-          {/* AI Coach */}
-          <div className="bg-gradient-to-br from-sky-600 to-blue-700 rounded-2xl p-5 text-white shadow-md shadow-sky-500/20">
+          {/* Copilot evaluation */}
+          <div className="cc-dusk rounded-2xl p-5 text-white shadow-md">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-sky-200 animate-pulse" />
-              <p className="text-xs font-bold uppercase tracking-wider text-sky-100">AI Club Coach</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-sky-100">Copilot evaluation</p>
             </div>
             {loading ? (
               <div className="space-y-2">
@@ -239,6 +334,71 @@ export function LeaderDashboard() {
               </div>
             ) : (
               <p className="text-sm leading-relaxed text-sky-50">{aiTip}</p>
+            )}
+          </div>
+
+          {(() => {
+            const mine = (clubBudget?.clubs || []).find((c) => String(c.id) === String(clubId)) || clubBudget?.clubs?.[0];
+            if (!mine) return null;
+            const cur = clubBudget.currency || "USD";
+            return (
+              <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm">
+                <h3 className="mb-1 text-sm font-bold text-slate-800">This year&apos;s grant</h3>
+                <p className="text-[11px] text-slate-500">
+                  Exclusive members {mine.exclusive} · sharing {mine.in_2 + mine.in_3 + mine.in_4 + mine.in_5_plus}
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">
+                  {cur} {mine.remaining}
+                  <span className="ml-1 text-xs font-semibold text-slate-400">left of {cur} {mine.entitlement}</span>
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Used {mine.pct_used}% · {mine.latest_comment || "No spend recorded yet"}
+                </p>
+              </div>
+            );
+          })()}
+
+          {/* Join requests */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-sky-500" /> Join requests
+            </h3>
+            {joinRequests.length === 0 ? (
+              <p className="text-xs text-slate-400">No pending membership requests.</p>
+            ) : (
+              <div className="space-y-2">
+                {joinRequests.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs font-semibold text-slate-800">{m.user_name || m.user}</p>
+                      <p className="text-[11px] text-slate-400">{m.club_name}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700"
+                        onClick={async () => {
+                          await api.memberships.approve(m.id);
+                          setJoinRequests((prev) => prev.filter((x) => x.id !== m.id));
+                          toast.success("Member approved", m.user_name || "Student");
+                        }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700"
+                        onClick={async () => {
+                          await api.memberships.reject(m.id);
+                          setJoinRequests((prev) => prev.filter((x) => x.id !== m.id));
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -278,7 +438,7 @@ export function LeaderDashboard() {
         isOpen={reportModalOpen}
         onClose={() => setReportModalOpen(false)}
         clubId={clubId}
-        clubName={user?.club_name || "Robotics & AI Society"}
+        clubName={user?.club_name || "Robotics club"}
         onSubmitSuccess={(newAct) => {
           setActivities((prev) => [newAct, ...prev]);
         }}
@@ -288,7 +448,7 @@ export function LeaderDashboard() {
         isOpen={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
         clubId={clubId}
-        clubName={user?.club_name || "Robotics & AI Society"}
+        clubName={user?.club_name || "Robotics club"}
         onEventCreated={(newEvt) => {
           setEvents((prev) => [newEvt, ...prev]);
         }}
@@ -298,15 +458,36 @@ export function LeaderDashboard() {
         isOpen={evidenceModalOpen}
         onClose={() => setEvidenceModalOpen(false)}
         clubId={clubId}
-        clubName={user?.club_name || "Robotics & AI Society"}
+        clubName={user?.club_name || "Robotics club"}
         activities={activities}
       />
+
+      <PublishWatchModal
+        isOpen={publishModalOpen}
+        onClose={() => setPublishModalOpen(false)}
+        clubId={clubId}
+        clubName={user?.club_name || "your club"}
+      />
+
+      <HandoverModal
+        isOpen={handoverModalOpen}
+        onClose={() => setHandoverModalOpen(false)}
+        clubId={clubId}
+        currentOfficers={committeeRoster}
+      />
+      <ConceptNoteModal
+        isOpen={conceptNoteOpen}
+        onClose={() => setConceptNoteOpen(false)}
+        clubId={clubId}
+        currency={clubBudget?.currency || "USD"}
+      />
+      <DeclareClubsModal isOpen={declareOpen} onClose={() => setDeclareOpen(false)} />
 
       <ProposeCollabModal
         isOpen={collabModalOpen}
         onClose={() => setCollabModalOpen(false)}
         currentClubId={clubId}
-        currentClubName={user?.club_name || "Robotics & AI Society"}
+        currentClubName={user?.club_name || "Robotics club"}
         onCollabProposed={(newCollab) => {
           setCollaborations((prev) => [newCollab, ...prev]);
         }}

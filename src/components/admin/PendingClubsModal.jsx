@@ -4,28 +4,7 @@ import { useToast } from "../../context/ToastContext";
 
 export function PendingClubsModal({ isOpen, onClose, onClubCharterApproved }) {
   const { toast } = useToast();
-  const [pendingClubs, setPendingClubs] = useState([
-    {
-      id: "4",
-      name: "Filmmakers Guild",
-      category: "Arts & Culture",
-      members_count: 32,
-      staff_advisor_name: "Mira Patel",
-      description: "A newly forming collective for student filmmakers — short films, a termly screening night, and equipment-sharing.",
-      constitution_file: "filmmakers_guild_charter_draft_v2.pdf",
-      submitted_at: "2026-09-01",
-    },
-    {
-      id: "7",
-      name: "FinTech & Algorithmic Trading Lab",
-      category: "Technology",
-      members_count: 28,
-      staff_advisor_name: "Prof. Kenneth Griffin",
-      description: "Quantitative financial engineering, backtesting workshops, and crypto-asset security analytics.",
-      constitution_file: "fintech_society_constitution.pdf",
-      submitted_at: "2026-09-07",
-    },
-  ]);
+  const [pendingClubs, setPendingClubs] = useState([]);
 
   const [submitting, setSubmitting] = useState(false);
 

@@ -9,7 +9,7 @@ export function ProposeCollabModal({ isOpen, onClose, currentClubId, currentClub
   const otherClubs = MOCK_CLUBS.filter((c) => c.id !== (currentClubId || "1"));
 
   const [formData, setFormData] = useState({
-    partner_club: otherClubs[0]?.name || "Environmental Action Collective",
+    partner_club: otherClubs[0]?.name || "Alchemists Gardening Club",
     title: "",
     objectives: "",
     proposed_date: new Date(Date.now() + 86400000 * 14).toISOString().slice(0, 10),
@@ -35,7 +35,7 @@ export function ProposeCollabModal({ isOpen, onClose, currentClubId, currentClub
         title: formData.title,
         status: "pending_partner_acceptance",
         proposed_date: formData.proposed_date,
-        initiator: currentClubName || "Robotics & AI Society",
+        initiator: currentClubName || "Robotics club",
       };
 
       toast.success(

@@ -36,11 +36,11 @@ export function ClubDrilldownModal({ isOpen, onClose, clubRanking }) {
             </div>
             <div className="text-right">
               <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                clubRanking.trend.startsWith("+")
+                String(clubRanking.trend || "").startsWith("+")
                   ? "bg-emerald-100 text-emerald-800"
                   : "bg-sky-100 text-sky-800"
               }`}>
-                Trend: {clubRanking.trend}
+                Trend: {clubRanking.trend || "—"}
               </span>
               <p className="text-[11px] text-slate-400 mt-1">CCEA Cycle 1 Position</p>
             </div>
@@ -75,12 +75,24 @@ export function ClubDrilldownModal({ isOpen, onClose, clubRanking }) {
             </div>
           </div>
 
+          {Array.isArray(clubRanking.lackings) && clubRanking.lackings.length > 0 && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100 text-xs text-rose-900">
+              <p className="font-bold mb-1.5">This month’s lackings</p>
+              <ul className="space-y-1">
+                {clubRanking.lackings.slice(0, 4).map((item) => (
+                  <li key={item.code || item.title}>• {item.title || item.detail}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs text-amber-900 flex items-start gap-2.5">
             <Award className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">CCEA Award Candidacy</p>
+              <p className="font-bold">CCEA standing</p>
               <p className="mt-0.5 text-amber-800">
-                Eligible for nomination in <strong>Club of the Year</strong> and <strong>Best Innovation</strong>. Final reveal scheduled during the CCEA Reveal Ceremony.
+                Band: <strong>{(clubRanking.band || clubRanking.health || "unscored").replace("_", " ")}</strong>.
+                Open CCEA Reveal to present winners when the cycle is ready.
               </p>
             </div>
           </div>

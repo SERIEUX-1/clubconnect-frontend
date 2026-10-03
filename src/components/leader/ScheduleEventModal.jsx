@@ -42,7 +42,7 @@ export function ScheduleEventModal({ isOpen, onClose, clubId, clubName, onEventC
       const payload = {
         ...formData,
         club_id: clubId || "1",
-        club_name: clubName || "Robotics & AI Society",
+        club_name: clubName || "Robotics club",
         capacity: Number(formData.capacity),
         check_in_window: formData.check_in_open ? "Active Now (Closes in 3 hours)" : "Opens 1 hour before start",
       };

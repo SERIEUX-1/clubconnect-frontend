@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { PublishedWatch } from "../components/clubs/PublishedWatch";
+import { PublishWatchModal } from "../components/leader/PublishWatchModal";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
+import { useMembershipWindow } from "../hooks/useMembershipWindow";
 import {
   ArrowLeft,
   UserPlus,
@@ -11,132 +15,147 @@ import {
   Download,
   Check,
   ShieldCheck,
-  Calendar,
-  Sparkles,
-  ExternalLink,
-  Award,
+  PlayCircle,
+  MapPin,
   Users,
+  Mail,
+  ScrollText,
+  Upload,
 } from "lucide-react";
 
-/**
- * PRS §6: "Portfolio storytelling should follow: Problem -> Objective ->
- * What we did -> Who participated -> Who benefited -> Evidence -> Results
- * -> Lessons -> Next steps." This page follows that sequence literally,
- * per verified activity and impact project, rather than showing a flat
- * file list — this is the platform's real differentiator over a generic
- * document repository.
- */
 export function ClubPortfolio() {
   const { clubId } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [club, setClub] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [joinStatus, setJoinStatus] = useState("idle"); // 'idle' | 'submitting' | 'requested'
+  const [error, setError] = useState("");
+  const [joinStatus, setJoinStatus] = useState("idle");
+  const [tab, setTab] = useState("watch");
+  const [publishOpen, setPublishOpen] = useState(false);
+  const { open: censusOpen, loading: censusLoading } = useMembershipWindow();
 
   useEffect(() => {
-    api.clubs.portfolio(clubId || "1")
-      .then(setClub)
+    setLoading(true);
+    setError("");
+    api.clubs
+      .portfolio(clubId)
+      .then((data) => {
+        setClub(data);
+        const videos = (data.published_media || []).filter((m) => m.is_video);
+        setTab(videos.length || (data.published_media || []).length ? "watch" : "activities");
+      })
+      .catch((err) => {
+        setClub(null);
+        setError(err.message || "This club page could not be opened.");
+      })
       .finally(() => setLoading(false));
   }, [clubId]);
 
+  const leadsThisClub =
+    !!club && (user?.led_clubs || []).map(String).includes(String(club.id));
+  const canRequestMembership =
+    (user?.role === "student" || user?.role === "club_leader") && !leadsThisClub;
+  const canJoin = canRequestMembership && censusOpen;
+  const canPublish = leadsThisClub;
+  const activities = club?.verified_activities || [];
+  const projects = club?.impact_projects || [];
+  const gallery = club?.published_media || [];
+  const videos = useMemo(() => gallery.filter((m) => m.is_video), [gallery]);
+
   const handleJoinClub = async () => {
-    if (joinStatus === "requested") return;
+    if (joinStatus === "requested" || !canJoin) return;
     setJoinStatus("submitting");
     try {
       await api.clubs.join(club.id);
       setJoinStatus("requested");
-      toast.success(`Membership application submitted for ${club.name}! Club leadership will review your request.`);
+      toast.success(`Membership application submitted for ${club.name}.`);
     } catch (err) {
       setJoinStatus("idle");
-      toast.error("Failed to submit join request. Please try again.");
+      toast.error(err.message || "Failed to submit join request.");
     }
   };
 
   const handleSharePassport = () => {
     try {
       navigator.clipboard.writeText(window.location.href);
-      toast.success("Club digital passport URL copied to clipboard!");
+      toast.success("Club page link copied.");
     } catch {
-      toast.info(`Passport link: ${window.location.href}`);
+      toast.info(`Link: ${window.location.href}`);
     }
   };
 
   const handleExportPortfolio = () => {
     if (!club) return;
-    const activities = (club.verified_activities || [])
-      .map((a) => `• ${a.title} (${new Date(a.date_time).toLocaleDateString()}): ${a.objective || a.report_text}`)
+    const activityLines = activities
+      .map((a) => `• ${a.title}: ${a.objective || a.report_text}`)
       .join("\n");
-    const projects = (club.impact_projects || [])
-      .map((p) => `• ${p.title}: Problem: ${p.problem_statement} | Outcomes: ${p.outcomes}`)
+    const projectLines = projects
+      .map((p) => `• ${p.title}: ${p.outcomes || p.problem_statement}`)
       .join("\n");
-
-    const summaryText = `CLUB DIGITAL PASSPORT: ${club.name}
-Category: ${club.category}
-Status: ${club.status || "Recognized"}
-Established: ${club.established_date || "2024"}
-Mission: ${club.mission || club.description}
-
-VERIFIED ACTIVITIES:
-${activities || "No verified activities recorded."}
-
-IMPACT PROJECTS:
-${projects || "No impact projects recorded."}
-`;
-
-    const blob = new Blob([summaryText], { type: "text/plain;charset=utf-8" });
+    const mediaLines = gallery.map((m) => `• ${m.caption} (${m.url})`).join("\n");
+    const blob = new Blob(
+      [
+        `${club.name}\n${club.mission || club.description}\n\nACTIVITIES\n${activityLines}\n\nPROJECTS\n${projectLines}\n\nWATCH\n${mediaLines}\n`,
+      ],
+      { type: "text/plain;charset=utf-8" }
+    );
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${club.name.replace(/\s+/g, "_")}_Passport_Summary.txt`;
+    link.download = `${club.name.replace(/\s+/g, "_")}_Campus_Page.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    toast.success(`Digital passport summary for ${club.name} downloaded!`);
   };
 
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-20 text-center">
         <div className="w-10 h-10 rounded-full border-4 border-sky-200 border-t-sky-500 animate-spin mx-auto mb-4" />
-        <p className="text-slate-400 text-sm">Loading club portfolio…</p>
+        <p className="text-slate-400 text-sm">Opening club page…</p>
       </div>
     );
   }
 
-  if (!club) return null;
+  if (!club) {
+    return (
+      <div className="max-w-xl mx-auto px-6 py-20 text-center">
+        <p className="font-semibold text-slate-800">This club is not on the campus directory yet.</p>
+        <p className="mt-2 text-sm text-slate-500">{error}</p>
+        <Link to="/clubs" className="mt-6 inline-flex text-sm font-semibold text-sky-700">
+          Back to Discover
+        </Link>
+      </div>
+    );
+  }
 
   const passportNumber = `CC-${new Date(club.established_date || Date.now()).getFullYear()}-${String(
-    club.code || club.id
-  ).slice(0, 3).toUpperCase()}`;
+    club.slug || club.id
+  )
+    .slice(0, 8)
+    .toUpperCase()}`;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
-      {/* Top Navigation & Breadcrumb */}
-      <div className="bg-slate-900 border-b border-slate-800 text-slate-400 text-xs py-2.5 px-4 sm:px-6">
+    <div className="min-h-screen pb-20">
+      <div className="bg-slate-900/90 border-b border-slate-800 text-slate-400 text-xs py-2.5 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
-            to="/"
+            to="/clubs"
             className="inline-flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors font-medium"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Club Directory
+            <ArrowLeft className="w-3.5 h-3.5" /> All campus clubs
           </Link>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
-            <span>OFFICIAL PASSPORT:</span>
-            <span className="text-amber-400 font-bold">{passportNumber}</span>
-          </div>
+          <span className="font-mono text-[11px] text-amber-400 font-bold">{passportNumber}</span>
         </div>
       </div>
 
-      {/* Passport header */}
-      <section className="relative overflow-hidden border-b border-sky-900/40 bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 text-white shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-500/15 via-transparent to-transparent pointer-events-none" />
-
-        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 py-12 sm:py-16">
+      <section className="relative overflow-hidden border-b border-sky-900/40 bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 text-white">
+        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 py-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-start sm:items-center gap-5">
-              <div className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-tr ${club.badge_color || "from-sky-500 to-blue-600"} font-bold text-3xl text-white shadow-2xl ring-4 ring-white/10`}>
+            <div className="flex items-start gap-5">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-tr from-sky-500 to-amber-400 font-bold text-3xl text-white shadow-2xl ring-4 ring-amber-200/50">
                 {club.logo_initial || club.name?.charAt(0)}
               </div>
               <div>
@@ -144,62 +163,70 @@ ${projects || "No impact projects recorded."}
                   <span className="font-mono text-xs uppercase tracking-widest text-sky-400 font-semibold">
                     {club.category}
                   </span>
-                  <span className="text-slate-500">·</span>
-                  <span className="text-xs text-slate-300 font-medium">Est. {club.established_date || "2024"}</span>
                   {club.status === "recognized" && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      <ShieldCheck className="w-3 h-3" /> Institutional Charter
+                      <ShieldCheck className="w-3 h-3" /> Published for this campus
                     </span>
                   )}
                 </div>
                 <h1 className="font-bold text-3xl sm:text-4xl text-white mt-1.5">{club.name}</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300 font-normal">
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
                   {club.mission || club.description}
+                </p>
+                <p className="mt-3 text-xs text-sky-200">
+                  Every signed-in student, club leader, committee head, and staff member at this institution can watch the published films, photos, activities, and projects below.
                 </p>
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
             <div className="flex flex-wrap md:flex-col gap-2.5 shrink-0">
-              <button
-                id="btn-request-join-club"
-                onClick={handleJoinClub}
-                disabled={joinStatus === "requested" || joinStatus === "submitting"}
-                className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-md active:scale-95 ${
-                  joinStatus === "requested"
-                    ? "bg-emerald-600 text-white cursor-default"
-                    : "bg-sky-500 hover:bg-sky-400 text-white hover:shadow-sky-500/25"
-                }`}
-              >
-                {joinStatus === "requested" ? (
-                  <>
-                    <Check className="w-4 h-4 text-white" /> Membership Requested
-                  </>
-                ) : joinStatus === "submitting" ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Submitting…
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-4 h-4" /> Request to Join Club
-                  </>
-                )}
-              </button>
-
+              {canPublish && (
+                <button
+                  type="button"
+                  onClick={() => setPublishOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold bg-amber-400 hover:bg-amber-300 text-slate-900 shadow-md"
+                >
+                  <Upload className="w-4 h-4" /> Publish for campus to watch
+                </button>
+              )}
+              {canJoin && (
+                <button
+                  onClick={handleJoinClub}
+                  disabled={joinStatus === "requested" || joinStatus === "submitting"}
+                  className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-md ${
+                    joinStatus === "requested"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-sky-500 hover:bg-sky-400 text-white"
+                  }`}
+                >
+                  {joinStatus === "requested" ? (
+                    <>
+                      <Check className="w-4 h-4" /> Membership Requested
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" /> Request to Join
+                    </>
+                  )}
+                </button>
+              )}
+              {canRequestMembership && !canJoin && (
+                <p className="max-w-[16rem] text-[11px] text-slate-300">
+                  {censusLoading
+                    ? "Checking whether the Committee Head has opened membership requests…"
+                    : "Membership requests are closed until the Committee Head opens the campus window."}
+                </p>
+              )}
               <div className="flex items-center gap-2">
                 <button
-                  id="btn-share-passport"
                   onClick={handleSharePassport}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/15 transition-all active:scale-95"
-                  title="Copy passport URL"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/15"
                 >
                   <Share2 className="w-3.5 h-3.5 text-sky-300" /> Share
                 </button>
                 <button
-                  id="btn-export-portfolio"
                   onClick={handleExportPortfolio}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/15 transition-all active:scale-95"
-                  title="Export passport brief"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-white/10 text-white hover:bg-white/20 border border-white/15"
                 >
                   <Download className="w-3.5 h-3.5 text-sky-300" /> Export
                 </button>
@@ -207,86 +234,236 @@ ${projects || "No impact projects recorded."}
             </div>
           </div>
 
-          {/* Institutional Stats strip */}
           <div className="mt-8 pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Verified Activities</p>
-              <p className="text-xl font-bold text-white mt-0.5">{(club.verified_activities || []).length}</p>
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Videos & photos</p>
+              <p className="text-xl font-bold text-white mt-0.5">{gallery.length}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Impact Projects</p>
-              <p className="text-xl font-bold text-white mt-0.5">{(club.impact_projects || []).length}</p>
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Published activities</p>
+              <p className="text-xl font-bold text-white mt-0.5">{activities.length}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Leadership Quorum</p>
-              <p className="text-xl font-bold text-emerald-400 mt-0.5">100% Verified</p>
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Impact projects</p>
+              <p className="text-xl font-bold text-white mt-0.5">{projects.length}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">CCEA Tier</p>
-              <p className="text-xl font-bold text-amber-300 mt-0.5">Tier 1 Excellence</p>
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Films you can watch</p>
+              <p className="text-xl font-bold text-amber-300 mt-0.5">{videos.length}</p>
             </div>
           </div>
+
+          {(club.officers?.length || club.constitution_title || club.directory_notes) && (
+            <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.06] p-5">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-widest text-amber-300 font-bold">Executive committee</p>
+                  <p className="mt-1 text-sm text-slate-300">
+                    {club.recognition_cycle
+                      ? `Recognised ${club.recognition_cycle} in the ALCHE Clubs and Societies Database.`
+                      : "Leaders recorded in the campus register."}
+                  </p>
+                </div>
+                {club.constitution_title && (
+                  <p className="inline-flex items-center gap-1.5 text-xs text-sky-200">
+                    <ScrollText className="h-3.5 w-3.5" />
+                    {club.constitution_title}
+                  </p>
+                )}
+              </div>
+              {club.officers?.length > 0 && (
+                <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {club.officers.map((officer) => (
+                    <li
+                      key={`${officer.title}-${officer.name}`}
+                      className="rounded-xl border border-white/10 bg-slate-950/30 px-3.5 py-3"
+                    >
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-sky-300">{officer.title}</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{officer.name}</p>
+                      {officer.email ? (
+                        <a
+                          href={`mailto:${officer.email}`}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-amber-200 hover:text-amber-100 break-all"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Mail className="h-3 w-3 shrink-0" />
+                          {officer.email}
+                        </a>
+                      ) : (
+                        <p className="mt-1 text-[11px] text-slate-500">Campus email not listed in the register</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {club.directory_notes && (
+                <p className="mt-4 text-xs leading-relaxed text-slate-400">{club.directory_notes}</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      <div className="mx-auto max-w-5xl space-y-12 px-4 sm:px-6 py-12">
-        {(club.verified_activities || []).map((activity, i) => (
-          <article key={i} className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-2xl text-slate-900">{activity.title}</h2>
-              <StatusBadge status="verified" />
-            </div>
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 py-10">
+        <div className="mb-8 flex flex-wrap gap-2">
+          {[
+            { id: "watch", label: `Watch (${gallery.length})` },
+            { id: "activities", label: `Activities (${activities.length})` },
+            { id: "projects", label: `Projects (${projects.length})` },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={`rounded-full px-4 py-2 text-xs font-bold ${
+                tab === item.id ? "bg-sky-600 text-white" : "bg-white text-slate-600 border border-slate-200"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <SectionHeading mark="Objective" title="What we set out to do" />
-                <p className="text-sm leading-relaxed text-slate-500">{activity.objective}</p>
+        {tab === "watch" && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <PlayCircle className="w-5 h-5 text-sky-600" />
+              <h2 className="font-bold text-2xl text-slate-900">Published work you can watch</h2>
+            </div>
+            {gallery.length === 0 ? (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-500">This club has not published videos or photos yet.</p>
+                {canPublish && (
+                  <button
+                    type="button"
+                    onClick={() => setPublishOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-xs font-bold text-white"
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Publish the first film or photo
+                  </button>
+                )}
               </div>
-              <div className="space-y-2">
-                <SectionHeading mark="Results" title="What happened" />
-                <p className="text-sm leading-relaxed text-slate-500">{activity.report_text}</p>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                {gallery.map((item) => (
+                  <PublishedWatch key={item.id} item={item} />
+                ))}
               </div>
-            </div>
+            )}
+          </div>
+        )}
 
-            <p className="font-mono text-xs text-slate-400">
-              {new Date(activity.date_time).toLocaleDateString(undefined, {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </article>
-        ))}
+        {tab === "activities" && (
+          <div className="space-y-12">
+            {activities.length === 0 && (
+              <p className="text-sm text-slate-500">No verified activities have been published yet.</p>
+            )}
+            {activities.map((activity) => (
+              <article key={activity.id || activity.title} className="space-y-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-sky-600 font-bold">
+                      {activity.activity_type || "Activity"}
+                    </p>
+                    <h2 className="font-bold text-2xl text-slate-900">{activity.title}</h2>
+                  </div>
+                  <StatusBadge status="verified" />
+                </div>
+                <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+                  {activity.location && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" /> {activity.location}
+                    </span>
+                  )}
+                  {activity.actual_participation ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5" /> {activity.actual_participation} took part
+                    </span>
+                  ) : null}
+                  {activity.date_time && (
+                    <span>
+                      {new Date(activity.date_time).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </span>
+                  )}
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <SectionHeading mark="Objective" title="What we set out to do" />
+                    <p className="text-sm leading-relaxed text-slate-600">{activity.objective}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <SectionHeading mark="Results" title="What happened" />
+                    <p className="text-sm leading-relaxed text-slate-600">{activity.report_text || activity.description}</p>
+                  </div>
+                </div>
+                {(activity.media || []).length > 0 && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {activity.media.map((item) => (
+                      <PublishedWatch key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
 
-        <hr className="border-slate-100" />
-
-        {(club.impact_projects || []).map((project, i) => (
-          <article key={i} className="space-y-6">
-            <h2 className="font-bold text-2xl text-slate-900">{project.title}</h2>
-
-            <div className="space-y-2">
-              <SectionHeading mark="Problem" title="Why this mattered" />
-              <p className="text-sm leading-relaxed text-slate-500">{project.problem_statement}</p>
-            </div>
-            <div className="space-y-2">
-              <SectionHeading mark="Who benefited" title="Beneficiaries" />
-              <p className="text-sm leading-relaxed text-slate-500">
-                {project.beneficiaries_description}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <SectionHeading mark="Outcomes" title="Measured impact" />
-              <p className="text-sm leading-relaxed text-slate-500">{project.outcomes}</p>
-            </div>
-            <div className="rounded-2xl bg-sky-50 border border-sky-100 p-5">
-              <SectionHeading mark="Next steps" title="Where this goes next" />
-              <p className="mt-2 text-sm leading-relaxed text-slate-700">{project.next_steps}</p>
-            </div>
-          </article>
-        ))}
+        {tab === "projects" && (
+          <div className="space-y-12">
+            {projects.length === 0 && (
+              <p className="text-sm text-slate-500">No impact projects have been published yet.</p>
+            )}
+            {projects.map((project) => (
+              <article key={project.id || project.title} className="space-y-5">
+                <h2 className="font-bold text-2xl text-slate-900">{project.title}</h2>
+                {(project.media || []).length > 0 && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {project.media.map((item) => (
+                      <PublishedWatch key={item.id} item={item} />
+                    ))}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <SectionHeading mark="Problem" title="Why this mattered" />
+                  <p className="text-sm leading-relaxed text-slate-600">{project.problem_statement}</p>
+                </div>
+                <div className="space-y-2">
+                  <SectionHeading mark="Who benefited" title="Beneficiaries" />
+                  <p className="text-sm leading-relaxed text-slate-600">{project.beneficiaries_description}</p>
+                </div>
+                <div className="space-y-2">
+                  <SectionHeading mark="Outcomes" title="Measured impact" />
+                  <p className="text-sm leading-relaxed text-slate-600">{project.outcomes}</p>
+                </div>
+                {project.next_steps && (
+                  <div className="rounded-2xl bg-sky-50 border border-sky-100 p-5">
+                    <SectionHeading mark="Next steps" title="Where this goes next" />
+                    <p className="mt-2 text-sm leading-relaxed text-slate-700">{project.next_steps}</p>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
       </div>
+      <PublishWatchModal
+        isOpen={publishOpen}
+        onClose={() => setPublishOpen(false)}
+        clubId={club.id}
+        clubName={club.name}
+        onPublished={(item) => {
+          setClub((prev) => {
+            if (!prev) return prev;
+            const media = [item, ...(prev.published_media || [])];
+            return { ...prev, published_media: media, published_watch_count: media.length };
+          });
+          setTab("watch");
+        }}
+      />
     </div>
   );
 }
-
-

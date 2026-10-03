@@ -1,13 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { MOCK_PERSONAS } from "../../data/mockClubs";
 import { dashboardPathForRole } from "../../lib/roles";
 import { X, Sparkles, LogIn, UserPlus, Shield, CheckCircle2, ArrowRight } from "lucide-react";
+import { ClubConnectMark } from "../brand/ClubConnectLogo";
+import { useI18n } from "../../i18n/I18nProvider";
+import { api } from "../../lib/api";
 
 export function AuthModal() {
-  const { authModalOpen, authModalTab, setAuthModalTab, closeAuthModal, login, register, switchPersona } = useAuth();
+  const { authModalOpen, authModalTab, setAuthModalTab, closeAuthModal, login, register, switchPersona, acceptSession } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
+  const googleBtnRef = useRef(null);
+  const [sso, setSso] = useState({ google: false, microsoft: false, note: "" });
   
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +29,52 @@ export function AuthModal() {
     password: "",
   });
 
+  useEffect(() => {
+    if (!authModalOpen) return;
+    api.auth.ssoStatus().then(setSso).catch(() => {});
+  }, [authModalOpen]);
+
+  useEffect(() => {
+    if (!authModalOpen || authModalTab !== "login" || !sso.google || !sso.google_client_id) return;
+    const existing = document.querySelector("script[data-cc-gsi]");
+    const boot = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return;
+      googleBtnRef.current.innerHTML = "";
+      window.google.accounts.id.initialize({
+        client_id: sso.google_client_id,
+        callback: async (response) => {
+          setError("");
+          setSubmitting(true);
+          try {
+            const res = await api.auth.ssoGoogle({ id_token: response.credential });
+            const loggedIn = acceptSession(res);
+            if (loggedIn?.role) navigate(dashboardPathForRole(loggedIn.role));
+          } catch (err) {
+            setError(err.message || t("auth.loginError"));
+          } finally {
+            setSubmitting(false);
+          }
+        },
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: "outline",
+        size: "large",
+        width: 320,
+        text: "continue_with",
+      });
+    };
+    if (existing) {
+      boot();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.dataset.ccGsi = "1";
+    script.onload = boot;
+    document.body.appendChild(script);
+  }, [authModalOpen, authModalTab, sso.google, sso.google_client_id, acceptSession, navigate, t]);
+
   if (!authModalOpen) return null;
 
   const handleLogin = async (e) => {
@@ -33,7 +85,7 @@ export function AuthModal() {
       const loggedIn = await login(username, password);
       if (loggedIn?.role) navigate(dashboardPathForRole(loggedIn.role));
     } catch (err) {
-      setError(err.message || "Invalid credentials. Try using one of the 1-Click Demo accounts.");
+      setError(err.message || t("auth.loginError"));
     } finally {
       setSubmitting(false);
     }
@@ -47,7 +99,7 @@ export function AuthModal() {
       const created = await register(regData);
       navigate(dashboardPathForRole(created?.role || "student"));
     } catch (err) {
-      setError(err.message || "Registration failed. Please check your fields.");
+      setError(err.message || t("auth.registerError"));
     } finally {
       setSubmitting(false);
     }
@@ -55,26 +107,27 @@ export function AuthModal() {
 
   const handleSelectPersona = async (role) => {
     setSubmitting(true);
+    setError("");
     try {
       await switchPersona(role);
       navigate(dashboardPathForRole(role));
+    } catch (err) {
+      setError(err.message || t("auth.demoError"));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-sky-100 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1e3a5f]/35 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-[32px] border border-white/70 bg-[rgba(255,250,244,0.96)] shadow-island flex flex-col max-h-[90vh]">
         {/* Sky Header Banner */}
-        <div className="relative px-6 pt-6 pb-5 bg-gradient-to-r from-sky-500 via-sky-600 to-blue-600 text-white flex items-center justify-between">
+        <div className="relative flex items-center justify-between px-6 pb-5 pt-6 text-white cc-dusk">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
-              <Sparkles className="w-5 h-5 text-sky-100" />
-            </div>
+            <ClubConnectMark size={40} />
             <div>
-              <h2 className="text-xl font-bold tracking-tight">ClubConnect Access</h2>
-              <p className="text-xs text-sky-100 font-medium">Institutional Ecosystem & Role Governance</p>
+              <h2 className="font-display text-2xl tracking-tight">{t("auth.welcome")}</h2>
+              <p className="text-xs text-white/80 font-medium">{t("auth.key")}</p>
             </div>
           </div>
           <button
@@ -87,7 +140,7 @@ export function AuthModal() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-slate-100 bg-sky-50/50 p-1.5">
+        <div className="flex border-b border-amber-100 bg-gradient-to-r from-sky-50 to-amber-50 p-1.5">
           <button
             onClick={() => { setAuthModalTab("demo"); setError(""); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 ${
@@ -97,7 +150,7 @@ export function AuthModal() {
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-sky-500" />
-            <span>1-Click Personas</span>
+            <span>{t("auth.personas")}</span>
           </button>
           <button
             onClick={() => { setAuthModalTab("login"); setError(""); }}
@@ -108,7 +161,7 @@ export function AuthModal() {
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
+            <span>{t("auth.signIn")}</span>
           </button>
           <button
             onClick={() => { setAuthModalTab("register"); setError(""); }}
@@ -119,7 +172,7 @@ export function AuthModal() {
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>New Student</span>
+            <span>{t("auth.create")}</span>
           </button>
         </div>
 
@@ -135,7 +188,7 @@ export function AuthModal() {
           {authModalTab === "demo" && (
             <div className="space-y-3">
               <div className="text-xs text-slate-500 mb-2 font-medium">
-                Select any institutional role to instantly experience their permissions and dedicated dashboard:
+                {t("auth.personasHint")}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {MOCK_PERSONAS.map((persona) => (
@@ -158,7 +211,7 @@ export function AuthModal() {
                       {persona.description}
                     </p>
                     <div className="flex items-center text-[11px] font-semibold text-sky-600 group-hover:translate-x-1 transition-transform">
-                      <span>Switch to Persona</span>
+                      <span>{t("auth.switchPersona")}</span>
                       <ArrowRight className="w-3 h-3 ml-1" />
                     </div>
                   </button>
@@ -170,22 +223,33 @@ export function AuthModal() {
           {/* Login Form */}
           {authModalTab === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
+              <div className="rounded-2xl border border-sky-100 bg-sky-50/70 p-3 text-[11px] leading-relaxed text-slate-600">
+                {sso.note || t("auth.ssoNote")}
+              </div>
+              {sso.google ? <div ref={googleBtnRef} className="flex justify-center" /> : (
+                <button type="button" disabled className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-400">
+                  {t("auth.googleOff")}
+                </button>
+              )}
+              <button type="button" disabled className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold text-slate-400">
+                {t("auth.microsoftOff")}
+              </button>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Institutional Email or Username
+                  {t("auth.email")}
                 </label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. alex.student@campus.edu or alex_student"
+                  placeholder="e.g. you@alustudent.com"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-transparent outline-none transition-all"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Password
+                  {t("auth.password")}
                 </label>
                 <input
                   type="password"
@@ -199,19 +263,19 @@ export function AuthModal() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm shadow-md shadow-sky-500/25 transition-all flex items-center justify-center space-x-2"
+                className="sun-cta mt-2 flex w-full items-center justify-center space-x-2 rounded-xl py-2.5 text-sm font-semibold text-white"
               >
                 <LogIn className="w-4 h-4" />
-                <span>{submitting ? "Authenticating..." : "Sign In to Campus ID"}</span>
+                <span>{submitting ? t("auth.signingIn") : t("auth.signInCampus")}</span>
               </button>
               <div className="pt-2 text-center text-xs text-slate-500">
-                Want quick testing?{" "}
+                {t("auth.wantDemo")}{" "}
                 <button
                   type="button"
                   onClick={() => setAuthModalTab("demo")}
                   className="text-sky-600 font-semibold hover:underline"
                 >
-                  Use 1-Click Demo Personas
+                  {t("auth.useDemo")}
                 </button>
               </div>
             </form>
@@ -222,7 +286,7 @@ export function AuthModal() {
             <form onSubmit={handleRegister} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">{t("auth.firstName")}</label>
                   <input
                     type="text"
                     required
@@ -233,7 +297,7 @@ export function AuthModal() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">{t("auth.lastName")}</label>
                   <input
                     type="text"
                     required
@@ -245,18 +309,21 @@ export function AuthModal() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Campus Email</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t("auth.licensedEmail")}</label>
                 <input
                   type="email"
                   required
                   value={regData.email}
                   onChange={(e) => setRegData({ ...regData, email: e.target.value })}
-                  placeholder="jane.doe@campus.edu"
+                  placeholder="you@student.yourcampus.edu"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:bg-white focus:ring-2 focus:ring-sky-500 outline-none"
                 />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {t("auth.emailHint")}
+                </p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Student ID</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Campus or staff ID</label>
                 <input
                   type="text"
                   required
@@ -280,10 +347,10 @@ export function AuthModal() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full mt-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm shadow-md shadow-sky-500/25 transition-all flex items-center justify-center space-x-2"
+                className="sun-cta mt-2 flex w-full items-center justify-center space-x-2 rounded-xl py-2.5 text-sm font-semibold text-white"
               >
                 <UserPlus className="w-4 h-4" />
-                <span>{submitting ? "Creating Account..." : "Create Student Account"}</span>
+                <span>{submitting ? "Creating Account..." : "Create account"}</span>
               </button>
             </form>
           )}

@@ -47,8 +47,13 @@ export default {
           border: "#fde68a",
         },
         brass: {
-          DEFAULT: "#C9A227",
-          dark: "#A6851F",
+          DEFAULT: "#E8B923",
+          dark: "#C49212",
+        },
+        sun: {
+          DEFAULT: "#fbbf24",
+          soft: "#fffbeb",
+          line: "#fde68a",
         },
         ccea: {
           DEFAULT: "#8b5cf6",
@@ -58,14 +63,16 @@ export default {
       },
       fontFamily: {
         sans: ["IBM Plex Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["Fraunces", "IBM Plex Sans", "Georgia", "serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+        display: ["Cormorant Garamond", "Fraunces", "Georgia", "serif"],
+        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       boxShadow: {
         sky: "0 4px 20px -2px rgba(14, 165, 233, 0.08), 0 2px 6px -1px rgba(14, 165, 233, 0.04)",
         "sky-lg": "0 10px 30px -4px rgba(14, 165, 233, 0.12), 0 4px 10px -2px rgba(14, 165, 233, 0.06)",
-        card: "0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 14px -2px rgba(15, 23, 42, 0.06)",
+        sun: "0 10px 32px -8px rgba(251, 191, 36, 0.45)",
+        card: "0 1px 3px rgba(15, 23, 42, 0.04), 0 18px 40px -18px rgba(30, 58, 95, 0.28)",
         glow: "0 0 20px -4px rgba(14, 165, 233, 0.35)",
+        island: "0 18px 50px -22px rgba(20, 40, 80, 0.35), inset 0 1px 0 rgba(255,255,255,0.85)",
       },
       borderRadius: {
         card: "18px",

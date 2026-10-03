@@ -3,16 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ClubConnect — One Campus. Every Club. One Digital Ecosystem.</title>
+    <title>ClubConnect — Licensed campuses. Every club, one system.</title>
+    <meta
+      name="description"
+      content="ClubConnect is the licensed institution system for campus clubs: join, run events, file reports, keep evidence, and award excellence. Sign in with your school email."
+    />
+    <meta property="og:title" content="ClubConnect" />
+    <meta
+      property="og:description"
+      content="One licensed campus system for every club. Sign in with your institution email."
+    />
+    <meta property="og:image" content="/brand/clubconnect-logo.png" />
+    <link rel="icon" type="image/png" href="/brand/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <style>
+      #cc-boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: #cfe6f4;
+        color: #1e3a5f;
+        font-family: "IBM Plex Sans", system-ui, sans-serif;
+        z-index: 40;
+      }
+      #cc-boot strong { font-size: 1.35rem; letter-spacing: -0.02em; }
+      #cc-boot span { font-size: 0.9rem; color: #334155; }
+      #root:not(:empty) ~ #cc-boot { display: none; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="cc-boot">
+      <strong>ClubConnect</strong>
+      <span>Loading your campus… if this stays, press Ctrl+Shift+R</span>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

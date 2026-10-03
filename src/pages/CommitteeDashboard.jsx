@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { api } from "../lib/api";
-import { CheckCircle2, XCircle, FileStack, Eye, BarChart3, Clock, Sparkles, Download, CheckCheck, Filter } from "lucide-react";
+import { CheckCircle2, XCircle, FileStack, Eye, BarChart3, Clock, Sparkles, Download, CheckCheck, Filter, Repeat } from "lucide-react";
 import { EvidenceDetailModal } from "../components/committee/EvidenceDetailModal";
+import { HandoverModal } from "../components/leader/HandoverModal";
 
 export function CommitteeDashboard() {
   const { user } = useAuth();
@@ -14,27 +15,39 @@ export function CommitteeDashboard() {
   const [filter, setFilter] = useState("all");
   const [selectedEvidence, setSelectedEvidence] = useState(null);
 
+  const [copilotScan, setCopilotScan] = useState(null);
+  const [handovers, setHandovers] = useState([]);
+  const [campusHandoverOpen, setCampusHandoverOpen] = useState(false);
+
   useEffect(() => {
-    Promise.all([api.evidence.list(), api.evaluation.getCriteria()])
-      .then(([ev, cr]) => {
+    Promise.all([
+      api.evidence.list(),
+      api.evaluation.getCriteria(),
+      api.copilot.healthScan().catch(() => null),
+      api.clubs.listHandovers().catch(() => []),
+    ])
+      .then(([ev, cr, scan, hs]) => {
         setEvidence(Array.isArray(ev) ? ev : []);
         setCriteria(Array.isArray(cr) ? cr : []);
+        setCopilotScan(scan);
+        setHandovers(Array.isArray(hs) ? hs : []);
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const pending = evidence.filter((e) => e.status === "under_review");
+  const pending = evidence.filter((e) => e.status === "under_review" || e.status === "submitted");
   const verified = evidence.filter((e) => e.status === "verified");
   const rejected = evidence.filter((e) => e.status === "rejected");
 
   const filteredEvidence = evidence.filter((e) => {
     if (filter === "all") return true;
+    if (filter === "under_review") return e.status === "under_review" || e.status === "submitted";
     return e.status === filter;
   });
 
-  const handleReview = async (id, status, comment = "Reviewed by committee member.") => {
+  const handleReview = async (id, status, comment = "Reviewed by Clubs and Societies Committee Head.") => {
     await api.evidence.review(id, status, comment);
-    setEvidence((prev) => prev.map((e) => (e.id === id ? { ...e, status, reviewer_comment: comment, reviewer_name: user?.full_name || "Marcus Vance" } : e)));
+    setEvidence((prev) => prev.map((e) => (e.id === id ? { ...e, status, reviewer_comment: comment, reviewer_name: user?.full_name || "Committee Head" } : e)));
   };
 
   const handleBatchVerify = async () => {
@@ -45,12 +58,12 @@ export function CommitteeDashboard() {
 
     const count = pending.length;
     for (const item of pending) {
-      await api.evidence.review(item.id, "verified", "Batch verified via AI concordance verification.");
+      await api.evidence.review(item.id, "verified", "Batch verified via Copilot Health Scan concordance.");
     }
     setEvidence((prev) =>
       prev.map((e) =>
-        e.status === "under_review"
-          ? { ...e, status: "verified", reviewer_name: user?.full_name || "Marcus Vance" }
+        e.status === "under_review" || e.status === "submitted"
+          ? { ...e, status: "verified", reviewer_name: user?.full_name || "Committee Head" }
           : e
       )
     );
@@ -84,15 +97,25 @@ export function CommitteeDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Hero */}
-      <div className="mb-8 sky-gradient-hero rounded-3xl p-8 border border-sky-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="morning-hero mb-8 flex flex-col gap-4 rounded-3xl p-8 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-1">Committee Member · Assigned Reviewer</p>
+          <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-1">Clubs &amp; Societies Committee Head</p>
           <h1 className="text-3xl font-bold text-slate-900 mb-1">Evidence Review Queue</h1>
           <p className="text-slate-500 text-sm max-w-xl">
-            Review evidence submissions, inspect AI concordance benchmarks, and substantiate CCEA club portfolios.
+            You verify every club&apos;s evidence. Copilot can recommend; only your decision counts for CCEA.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          {user?.role === "committee_head" && (
+            <button
+              type="button"
+              onClick={() => setCampusHandoverOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs transition-colors"
+            >
+              <Repeat className="w-3.5 h-3.5 text-slate-500" />
+              <span>Handover</span>
+            </button>
+          )}
           <button
             onClick={handleExportReviewQueue}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs transition-colors"
@@ -109,6 +132,90 @@ export function CommitteeDashboard() {
           </button>
         </div>
       </div>
+
+      {handovers.filter((h) => h.status !== "declined" && h.status !== "confirmed").length > 0 && (
+        <div className="mb-8 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 font-bold text-slate-800">Club committee handovers awaiting you</h2>
+          <p className="mb-4 text-xs text-slate-500">
+            Confirming replaces the outgoing committee with the incoming names on the form and switches their ClubConnect permissions immediately.
+          </p>
+          <div className="space-y-4">
+            {handovers
+              .filter((h) => h.status !== "declined" && h.status !== "confirmed")
+              .map((h) => (
+                <div key={h.id} className="rounded-2xl border border-slate-100 p-4">
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">{h.club_name}</p>
+                      <p className="text-xs text-slate-500">
+                        Submitted by {h.outgoing_name} ({h.submitted_by_email}) · {h.academic_year}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                        onClick={async () => {
+                          try {
+                            await api.clubs.declineHandover(h.id);
+                            setHandovers((prev) => prev.map((row) => (row.id === h.id ? { ...row, status: "declined" } : row)));
+                            toast.info("Handover declined", "No offices were changed.");
+                          } catch (err) {
+                            toast.error(err.message || "Could not decline.");
+                          }
+                        }}
+                      >
+                        Decline
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                        onClick={async () => {
+                          try {
+                            await api.clubs.confirmHandover(h.id);
+                            setHandovers((prev) => prev.map((row) => (row.id === h.id ? { ...row, status: "confirmed" } : row)));
+                            toast.success(
+                              "Committee switched",
+                              "Incoming people now hold office. Outgoing leaders are ordinary members unless they still lead another club."
+                            );
+                          } catch (err) {
+                            toast.error(err.message || "Could not confirm handover.");
+                          }
+                        }}
+                      >
+                        Confirm and switch
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Outgoing</p>
+                      <ul className="space-y-1 text-xs text-slate-700">
+                        {(h.outgoing_committee || []).map((p) => (
+                          <li key={`${p.email}-out`}>
+                            <span className="font-semibold">{p.name}</span> · {p.position}
+                            <span className="block text-slate-400">{p.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Incoming</p>
+                      <ul className="space-y-1 text-xs text-slate-700">
+                        {(h.incoming_committee || []).map((p) => (
+                          <li key={`${p.email}-in`}>
+                            <span className="font-semibold">{p.name}</span> · {p.position}
+                            <span className="block text-slate-400">{p.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
@@ -204,7 +311,7 @@ export function CommitteeDashboard() {
                     <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
                       {ev.evidence_type.replace("_", " ")} · {ev.file_name}
                     </span>
-                    {ev.status === "under_review" && (
+                    { (ev.status === "under_review" || ev.status === "submitted") && (
                       <div className="flex gap-2 ml-auto">
                         <button
                           onClick={() => {
@@ -255,12 +362,12 @@ export function CommitteeDashboard() {
                   <div key={c.key}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-slate-600">{c.label}</span>
-                      <span className="text-xs font-bold text-sky-700">{c.weight}%</span>
+                      <span className="text-xs font-bold text-sky-700">{c.weight ?? c.weight_percent}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-1.5">
                       <div
                         className="h-1.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-500"
-                        style={{ width: `${(c.weight / 15) * 100}%` }}
+                        style={{ width: `${Number(c.weight ?? c.weight_percent ?? 0)}%` }}
                       />
                     </div>
                   </div>
@@ -269,13 +376,14 @@ export function CommitteeDashboard() {
             )}
           </div>
 
-          <div className="bg-gradient-to-br from-sky-600 to-blue-700 rounded-2xl p-5 text-white">
+          <div className="cc-dusk rounded-2xl p-5 text-white">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-sky-200" />
-              <p className="text-xs font-bold text-sky-100 uppercase tracking-wider">AI Scoring Assistant</p>
+              <p className="text-xs font-bold text-sky-100 uppercase tracking-wider">Copilot scoring</p>
             </div>
             <p className="text-sm text-sky-50 leading-relaxed">
-              The AI has flagged 2 evidence items for priority review based on participation anomalies. Cross-check against institutional attendance records before verifying.
+              {copilotScan?.brief ||
+                "Copilot flags clubs missing reports, QR attendance, verified evidence, or confirmed collaborations. Pending partnership names do not count."}
             </p>
           </div>
         </div>
@@ -286,6 +394,11 @@ export function CommitteeDashboard() {
         evidence={selectedEvidence}
         onClose={() => setSelectedEvidence(null)}
         onReviewComplete={handleReview}
+      />
+      <HandoverModal
+        isOpen={campusHandoverOpen}
+        onClose={() => setCampusHandoverOpen(false)}
+        variant="campus"
       />
     </div>
   );

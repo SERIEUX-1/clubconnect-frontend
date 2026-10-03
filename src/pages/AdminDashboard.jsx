@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import {
   Shield, ClipboardList, Users, AlertTriangle, CheckCircle2,
-  Clock, Database, Lock, Terminal, Sparkles, Download, Filter
+  Clock, Database, Lock, Terminal, Sparkles, Download, Filter, Mail
 } from "lucide-react";
 import { ManageUsersModal } from "../components/admin/ManageUsersModal";
 import { SystemSettingsModal } from "../components/admin/SystemSettingsModal";
@@ -11,8 +12,12 @@ import { PendingClubsModal } from "../components/admin/PendingClubsModal";
 
 export function AdminDashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const campus = user?.institution?.short_name || user?.institution?.name;
+  const isPlatformOperator = user?.role === "system_admin" && !user?.institution;
   const [auditLogs, setAuditLogs] = useState([]);
   const [analytics, setAnalytics] = useState(null);
+  const [userCount, setUserCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [logFilter, setLogFilter] = useState("all");
 
@@ -20,12 +25,23 @@ export function AdminDashboard() {
   const [usersModalOpen, setUsersModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [pendingClubsModalOpen, setPendingClubsModalOpen] = useState(false);
+  const [inquiries, setInquiries] = useState([]);
+  const [campusHandovers, setCampusHandovers] = useState([]);
 
   useEffect(() => {
-    Promise.all([api.admin.getAuditLogs(), api.admin.getAnalytics()])
-      .then(([logs, a]) => {
+    Promise.all([
+      api.admin.getAuditLogs(),
+      api.admin.getAnalytics(),
+      api.admin.listLicenceInquiries().catch(() => []),
+      api.admin.listCampusUsers().catch(() => []),
+      api.admin.listCampusHandovers().catch(() => []),
+    ])
+      .then(([logs, a, licenceRows, directory, handovers]) => {
         setAuditLogs(Array.isArray(logs) ? logs : []);
         setAnalytics(a);
+        setInquiries(Array.isArray(licenceRows) ? licenceRows : []);
+        setUserCount(Array.isArray(directory) ? directory.length : null);
+        setCampusHandovers(Array.isArray(handovers) ? handovers : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -76,10 +92,14 @@ export function AdminDashboard() {
             <Shield className="w-6 h-6 text-rose-300" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-rose-300 mb-1">System Administrator</p>
-            <h1 className="text-3xl font-bold">Security & Audit Control</h1>
+            <p className="text-xs font-bold uppercase tracking-widest text-rose-300 mb-1">
+              {isPlatformOperator ? "ClubConnect operator" : `${campus || "Campus"} system administrator`}
+            </p>
+            <h1 className="text-3xl font-bold">{isPlatformOperator ? "Licence desk" : "Campus administration"}</h1>
             <p className="text-slate-400 text-sm mt-1">
-              Full system oversight — audit trails, security configurations, user management and platform health.
+              {isPlatformOperator
+                ? "You licence universities onto ClubConnect. You do not run a campus's clubs or awards."
+                : "You run this licensed campus — people, sign-in domains, and audit — the same job as a Google Workspace Super Admin or Canvas Account Admin. You do not mark CCEA, and you do not licence other universities."}
             </p>
           </div>
         </div>
@@ -98,7 +118,7 @@ export function AdminDashboard() {
       {/* System metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {[
-          { icon: Users, label: "Total users", value: analytics ? "6" : "—", color: "text-sky-600" },
+          { icon: Users, label: "People on this campus", value: userCount ?? (analytics ? "—" : "—"), color: "text-sky-600" },
           { icon: Database, label: "Clubs in system", value: analytics?.total_active_clubs || "—", color: "text-violet-600" },
           { icon: ClipboardList, label: "Audit log entries", value: loading ? "—" : auditLogs.length, color: "text-amber-600" },
           { icon: CheckCircle2, label: "Verified evidence", value: analytics?.verified_evidence_count || "—", color: "text-emerald-600" },
@@ -110,6 +130,157 @@ export function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {!isPlatformOperator && campusHandovers.filter((h) => h.status === "nominated").length > 0 && (
+        <div className="mb-8 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 font-bold text-slate-800">Committee Head handovers awaiting you</h2>
+          <p className="mb-4 text-xs text-slate-500">
+            Confirming replaces the outgoing Clubs &amp; Societies Committee Head with the incoming names and switches their ClubConnect permissions immediately.
+          </p>
+          <div className="space-y-4">
+            {campusHandovers
+              .filter((h) => h.status === "nominated")
+              .map((h) => (
+                <div key={h.id} className="rounded-2xl border border-slate-100 p-4">
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-slate-900">{h.institution_name} · {h.academic_year}</p>
+                      <p className="text-xs text-slate-500">
+                        Submitted by {h.outgoing_name} ({h.submitted_by_email})
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+                        onClick={async () => {
+                          try {
+                            await api.admin.declineCampusHandover(h.id);
+                            setCampusHandovers((prev) =>
+                              prev.map((row) => (row.id === h.id ? { ...row, status: "declined" } : row))
+                            );
+                            toast.info("Handover declined", "Committee Head permissions were not changed.");
+                          } catch (err) {
+                            toast.error(err.message || "Could not decline.");
+                          }
+                        }}
+                      >
+                        Decline
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white"
+                        onClick={async () => {
+                          try {
+                            await api.admin.confirmCampusHandover(h.id);
+                            setCampusHandovers((prev) =>
+                              prev.map((row) => (row.id === h.id ? { ...row, status: "confirmed" } : row))
+                            );
+                            toast.success(
+                              "Committee Head switched",
+                              "The incoming Committee Head now holds that office. Outgoing heads return to student or club leader unless they still lead a club."
+                            );
+                          } catch (err) {
+                            toast.error(err.message || "Could not confirm handover.");
+                          }
+                        }}
+                      >
+                        Confirm and switch
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Outgoing</p>
+                      <ul className="space-y-1 text-xs text-slate-700">
+                        {(h.outgoing_committee || []).map((p) => (
+                          <li key={`${p.email}-out`}>
+                            <span className="font-semibold">{p.name}</span> · {p.position}
+                            <span className="block text-slate-400">{p.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Incoming</p>
+                      <ul className="space-y-1 text-xs text-slate-700">
+                        {(h.incoming_committee || []).map((p) => (
+                          <li key={`${p.email}-in`}>
+                            <span className="font-semibold">{p.name}</span> · {p.position}
+                            <span className="block text-slate-400">{p.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {isPlatformOperator && (
+      <div className="mb-8 rounded-3xl border border-white/80 bg-white/70 p-6 shadow-sm backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h2 className="font-bold text-slate-800 flex items-center gap-2">
+            <Mail className="w-4 h-4 text-amber-600" /> Campus licence requests
+          </h2>
+          <span className="text-xs font-semibold text-amber-700">
+            {inquiries.filter((row) => row.status === "new").length} new
+          </span>
+        </div>
+        {inquiries.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            When a university finds ClubConnect and asks to join, their request lands here. Reply to the work email, then create their Institution.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {inquiries.map((row) => (
+              <div key={row.id} className="rounded-2xl border border-sky-100 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-900">{row.institution_name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {row.contact_name}
+                      {row.contact_role ? ` · ${row.contact_role}` : ""} · {row.contact_email}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Students @{row.student_email_domain || "—"} · Staff @{row.staff_email_domain || "—"}
+                    </p>
+                    {row.message ? <p className="text-sm text-slate-600 mt-2">{row.message}</p> : null}
+                  </div>
+                  <span className="text-[10px] uppercase tracking-wide font-bold text-sky-700 bg-sky-50 px-2 py-1 rounded-full">
+                    {row.status}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={`mailto:${row.contact_email}?subject=${encodeURIComponent("ClubConnect campus licence")}&body=${encodeURIComponent(`Hello ${row.contact_name},\n\nThank you for requesting ClubConnect for ${row.institution_name}.\n`)}`}
+                    className="text-xs font-semibold text-sky-800 px-3 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100"
+                  >
+                    Reply by email
+                  </a>
+                  {["contacted", "licensed", "declined"].map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={async () => {
+                        const updated = await api.admin.updateLicenceInquiry(row.id, { status });
+                        setInquiries((prev) => prev.map((item) => (item.id === row.id ? updated : item)));
+                        toast.success("Request updated", `${row.institution_name} marked ${status}.`);
+                      }}
+                      className="text-xs font-semibold text-slate-600 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 capitalize"
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Audit log */}
@@ -173,7 +344,7 @@ export function AdminDashboard() {
                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${actionColors[log.action] || "bg-slate-700 text-slate-300"}`}>
                       {log.action}
                     </span>
-                    <span className="text-slate-300 font-semibold">{log.actor}</span>
+                    <span className="text-slate-300 font-semibold">{log.actor_name || log.actor}</span>
                     <span className="text-slate-500 hidden sm:inline">→</span>
                     <span className="text-slate-400 leading-relaxed">{log.reason}</span>
                   </div>
@@ -195,8 +366,8 @@ export function AdminDashboard() {
                 { label: "JWT Authentication", ok: true },
                 { label: "HTTPS enforced", ok: true },
                 { label: "Role-based access", ok: true },
-                { label: "Audit logging active", ok: true },
-                { label: "AI moderation", ok: true },
+                { label: "Campus audit log", ok: true },
+                { label: "Sign-in by licensed email", ok: true },
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center justify-between">
                   <span className="text-xs text-slate-600">{label}</span>
@@ -220,7 +391,7 @@ export function AdminDashboard() {
                 className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-sky-50 text-sm text-slate-700 hover:text-sky-700 transition-colors group text-left active:scale-[0.98]"
               >
                 <Users className="w-4 h-4 text-sky-600" />
-                <span>Manage Users & Roles</span>
+                <span>People & roles</span>
               </button>
 
               <button
@@ -228,7 +399,7 @@ export function AdminDashboard() {
                 className="w-full flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-violet-50 text-sm text-slate-700 hover:text-violet-700 transition-colors group text-left active:scale-[0.98]"
               >
                 <Shield className="w-4 h-4 text-violet-600" />
-                <span>Configure System Settings</span>
+                <span>Campus sign-in & awards settings</span>
               </button>
 
               <button
@@ -249,14 +420,14 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          {/* AI platform health */}
+          {/* Copilot platform health */}
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 text-white">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-sky-300" />
-              <p className="text-xs font-bold uppercase tracking-wider text-sky-200">AI System Health</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-sky-200">What this role is not</p>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
-              AI coaching pipeline: <span className="text-emerald-400 font-semibold">Operational</span>. Evidence scoring: <span className="text-emerald-400 font-semibold">Active</span>. Last model sync: <span className="text-slate-400">3 hours ago</span>.
+              The Committee Head marks and publishes CCEA. Staff watch campus participation. You keep the campus directory and sign-in doors in order so those people can work.
             </p>
           </div>
         </div>

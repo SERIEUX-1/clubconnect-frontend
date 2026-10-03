@@ -39,7 +39,7 @@ export function UploadEvidenceModal({ isOpen, onClose, clubId, clubName, activit
       const payload = {
         ...formData,
         club_id: clubId || "1",
-        club_name: clubName || "Robotics & AI Society",
+        club_name: clubName || "Robotics club",
         status: "under_review",
         file_name: simulatedFile,
         created_at: new Date().toISOString(),

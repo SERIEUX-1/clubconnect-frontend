@@ -40,11 +40,43 @@ export function getStoredUser() {
   }
 }
 
-async function request(path, { method = "GET", body, auth = true, timeoutMs = 2500 } = {}) {
+
+async function requestForm(path, formData, timeoutMs = 90000) {
+  const headers = {};
+  const token = getAccessToken();
+  if (token && !String(token).startsWith("mock-token")) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({}));
+      const message =
+        detail.error ||
+        (typeof detail.detail === "string" ? detail.detail : null) ||
+        `Request failed: ${response.status}`;
+      throw new Error(typeof message === "string" ? message : `Request failed: ${response.status}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function request(path, { method = "GET", body, auth = true, timeoutMs = 12000 } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth) {
     const token = getAccessToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
+    if (token && !String(token).startsWith("mock-token")) {
+      headers.Authorization = `Bearer ${token}`;
+    }
   }
 
   const controller = new AbortController();
@@ -60,7 +92,13 @@ async function request(path, { method = "GET", body, auth = true, timeoutMs = 25
 
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
-      throw new Error(detail.error || detail.detail || `Request failed: ${response.status}`);
+      const message =
+        detail.error ||
+        (typeof detail.detail === "string" ? detail.detail : null) ||
+        (Array.isArray(detail.detail) ? detail.detail[0] : null) ||
+        detail.detail?.non_field_errors?.[0] ||
+        `Request failed: ${response.status}`;
+      throw new Error(typeof message === "string" ? message : `Request failed: ${response.status}`);
     }
     if (response.status === 204) return null;
     return await response.json();
@@ -75,71 +113,52 @@ async function request(path, { method = "GET", body, auth = true, timeoutMs = 25
 export const api = {
   auth: {
     login: async (username, password) => {
-      try {
-        const res = await request(`/auth/token/`, {
-          method: "POST",
-          body: { username, password },
-          auth: false,
-        });
-        if (res.access && res.user) {
-          setAuthSession(res.access, res.user);
-          return res;
-        }
-      } catch (err) {
-        // Fallback demo match
-        const needle = username.toLowerCase().trim();
-        const found = MOCK_PERSONAS.find((p) => {
-          const local = p.email.split("@")[0].toLowerCase();
-          return (
-            p.email.toLowerCase() === needle ||
-            p.role === username ||
-            local === needle ||
-            p.name.toLowerCase() === needle
-          );
-        });
-        if (found) {
-          const mockUser = {
-            id: found.student_id,
-            username: found.email.split("@")[0],
-            email: found.email,
-            full_name: found.name,
-            role: found.role,
-            student_id: found.student_id,
-            club_id: found.club_id,
-            club_name: found.club_name,
-          };
-          setAuthSession("mock-token-" + found.role, mockUser);
-          return { access: "mock-token-" + found.role, user: mockUser };
-        }
-        throw err;
+      const res = await request(`/auth/token/`, {
+        method: "POST",
+        body: { username, password },
+        auth: false,
+        timeoutMs: 15000,
+      });
+      if (!res?.access || !res?.user) {
+        throw new Error("Sign-in did not return a session. Check email and password.");
       }
+      setAuthSession(res.access, res.user);
+      return res;
     },
     register: async (data) => {
-      try {
-        return await request(`/auth/register/`, {
-          method: "POST",
-          body: data,
-          auth: false,
-        });
-      } catch (err) {
-        const mockUser = {
-          id: "STU-" + Date.now().toString().slice(-4),
-          username: data.username || data.email.split("@")[0],
-          email: data.email,
-          full_name: `${data.first_name || ""} ${data.last_name || ""}`.trim() || data.username,
-          role: "student",
-          student_id: data.student_id || "STU-2026-NEW",
-        };
-        setAuthSession("mock-token-registered", mockUser);
-        return { access: "mock-token-registered", user: mockUser };
-      }
+      const res = await request(`/auth/register/`, {
+        method: "POST",
+        body: data,
+        auth: false,
+        timeoutMs: 15000,
+      });
+      if (res?.access && res?.user) setAuthSession(res.access, res.user);
+      return res;
     },
     me: async () => {
-      try {
-        return await request(`/me/`);
-      } catch {
-        return getStoredUser() || MOCK_PERSONAS[0];
-      }
+      return await request(`/me/`);
+    },
+    setLanguage: async (preferred_language) => {
+      return await request(`/me/`, {
+        method: "PATCH",
+        body: { preferred_language },
+      });
+    },
+    ssoStatus: async () => {
+      return await request(`/auth/sso-status/`, { auth: false });
+    },
+    ssoGoogle: async (payload) => {
+      const res = await request(`/auth/sso/google/`, {
+        method: "POST",
+        body: payload,
+        auth: false,
+        timeoutMs: 20000,
+      });
+      if (res?.access && res?.user) setAuthSession(res.access, res.user);
+      return res;
+    },
+    transcript: async () => {
+      return await request(`/me/transcript/`);
     },
     getDemoPersonas: async () => {
       try {
@@ -151,38 +170,28 @@ export const api = {
       return MOCK_PERSONAS;
     },
     switchRole: async (targetRole) => {
-      try {
-        const res = await request(`/auth/switch-role/`, {
+      const personas = await api.auth.getDemoPersonas();
+      const persona = personas.find((p) => p.role === targetRole);
+      if (persona?.email && persona?.password) {
+        const res = await request(`/auth/token/`, {
           method: "POST",
-          body: { role: targetRole },
+          body: { username: persona.email, password: persona.password },
+          auth: false,
+          timeoutMs: 15000,
         });
-        if (res.user) {
+        if (res?.access && res?.user) {
           setAuthSession(res.access, res.user);
           return res.user;
         }
-      } catch {
-        // fallback
       }
-      const persona = MOCK_PERSONAS.find((p) => p.role === targetRole) || MOCK_PERSONAS[0];
-      const mockUser = {
-        id: persona.student_id,
-        username: persona.email.split("@")[0],
-        email: persona.email,
-        full_name: persona.name,
-        role: persona.role,
-        student_id: persona.student_id,
-        club_id: persona.club_id,
-        club_name: persona.club_name,
-      };
-      setAuthSession("mock-token-" + persona.role, mockUser);
-      return mockUser;
+      throw new Error("Could not switch to that demo account. Is the API running?");
     },
   },
 
-  clubs: {
+    clubs: {
     list: async (params = "") => {
       try {
-        const res = await request(`/clubs/${params}`, { auth: false });
+        const res = await request(`/clubs/${params || "?page_size=100"}`);
         return res.results || res;
       } catch {
         return MOCK_CLUBS;
@@ -195,38 +204,116 @@ export const api = {
         return MOCK_CLUBS.find((c) => c.id === String(id)) || MOCK_CLUBS[0];
       }
     },
+    publishWatch: async (clubId, data) => {
+      const form = new FormData();
+      form.append("caption", data.caption || "");
+      form.append("evidence_type", data.evidence_type || "video");
+      if (data.external_link) form.append("external_link", data.external_link);
+      if (data.activity) form.append("activity", data.activity);
+      if (data.file) form.append("file", data.file);
+      return await requestForm(`/clubs/${clubId}/publish-watch/`, form);
+    },
     portfolio: async (id) => {
       try {
-        return await request(`/clubs/${id}/portfolio/`, { auth: false });
+        return await request(`/clubs/${id}/portfolio/`);
       } catch {
         const club = MOCK_CLUBS.find((c) => c.id === String(id)) || MOCK_CLUBS[0];
         return {
           ...club,
-          verified_activities: MOCK_ACTIVITIES.filter((a) => a.status === "verified"),
-          impact_projects: MOCK_IMPACT_PROJECTS,
+          verified_activities: MOCK_ACTIVITIES.filter((a) => a.status === "verified" && a.club_id === club.id),
+          impact_projects: MOCK_IMPACT_PROJECTS.filter((p) => p.club_id === club.id),
+          published_media: [],
         };
       }
     },
     join: async (clubId) => {
+      return await request(`/club-memberships/`, {
+        method: "POST",
+        body: { club: clubId },
+      });
+    },
+    requestCharter: async (data) => {
       try {
-        return await request(`/memberships/`, {
-          method: "POST",
-          body: { club: clubId },
-        });
-      } catch {
-        return { status: "requested", detail: "Join request submitted to club leadership." };
+        return await request(`/clubs/request-charter/`, { method: "POST", body: data });
+      } catch (err) {
+        throw err;
       }
+    },
+    recognize: async (clubId) => {
+      return await request(`/clubs/${clubId}/recognize/`, { method: "POST" });
+    },
+    rejectCharter: async (clubId) => {
+      return await request(`/clubs/${clubId}/reject-charter/`, { method: "POST" });
+    },
+    listHandovers: async () => {
+      const res = await request(`/leadership-handovers/`);
+      return res.results || res;
+    },
+    currentCommittee: async (clubId) => {
+      return await request(`/leadership-handovers/current-committee/?club=${clubId}`);
+    },
+    nominateHandover: async (payload) => {
+      return await request(`/leadership-handovers/`, { method: "POST", body: payload });
+    },
+    acceptHandover: async (id) => {
+      return await request(`/leadership-handovers/${id}/accept/`, { method: "POST" });
+    },
+    declineHandover: async (id) => {
+      return await request(`/leadership-handovers/${id}/decline/`, { method: "POST" });
+    },
+    confirmHandover: async (id) => {
+      return await request(`/leadership-handovers/${id}/confirm/`, { method: "POST" });
+    },
+    listManaged: async (params = "") => {
+      const res = await request(`/clubs/${params}`);
+      return res.results || res;
     },
   },
 
   memberships: {
     list: async () => {
       try {
-        const res = await request(`/memberships/`);
+        const res = await request(`/club-memberships/`);
         return res.results || res;
       } catch {
         return MOCK_MEMBERSHIPS;
       }
+    },
+    approve: async (id) => {
+      return await request(`/club-memberships/${id}/approve/`, { method: "POST" });
+    },
+    reject: async (id) => {
+      return await request(`/club-memberships/${id}/reject/`, { method: "POST" });
+    },
+    window: async () => {
+      return await request(`/membership-census/window/`);
+    },
+    setWindow: async (payload) => {
+      return await request(`/membership-census/window/`, { method: "PATCH", body: payload });
+    },
+    declare: async (clubIds) => {
+      return await request(`/membership-census/declare/`, { method: "POST", body: { club_ids: clubIds } });
+    },
+    confirmMany: async (ids) => {
+      return await request(`/membership-census/confirm/`, { method: "POST", body: { ids } });
+    },
+    ledger: async () => {
+      return await request(`/membership-ledger/`);
+    },
+    myBudget: async () => {
+      return await request(`/membership-ledger/mine/`);
+    },
+    submitConceptNote: async (payload) => {
+      return await request(`/club-concept-notes/`, { method: "POST", body: payload });
+    },
+    approveConceptNote: async (id, committee_comment = "") => {
+      return await request(`/club-concept-notes/${id}/approve/`, { method: "POST", body: { committee_comment } });
+    },
+    declineConceptNote: async (id, committee_comment = "") => {
+      return await request(`/club-concept-notes/${id}/decline/`, { method: "POST", body: { committee_comment } });
+    },
+    recordSpend: async (payload) => {
+      return await request(`/club-budget-spends/`, { method: "POST", body: payload });
     },
   },
 
@@ -365,13 +452,48 @@ export const api = {
     getCriteria: async () => {
       try {
         const res = await request(`/evaluation-criteria/`);
-        return res.results || res;
+        const rows = res.results || res;
+        if (Array.isArray(rows) && rows.length) {
+          return rows.map((c) => ({
+            ...c,
+            weight: Number(c.weight ?? c.weight_percent ?? 0),
+          }));
+        }
       } catch {
-        return MOCK_CRITERIA;
+        return [];
       }
+      return MOCK_CRITERIA;
     },
     getRankings: async () => {
-      return MOCK_RANKINGS;
+      try {
+        const res = await request(`/monthly-evaluations/`);
+        const clubs = res.clubs || [];
+        if (clubs.length) {
+          return [...clubs]
+            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+            .map((c, i) => ({
+              rank: i + 1,
+              club: c.club_name,
+              club_id: c.club_id,
+              category: c.category || "General",
+              score: c.score,
+              band: c.band,
+              health: c.band,
+              trend:
+                c.band === "healthy" ? "+" : c.band === "at_risk" ? "-" : "New",
+              signals: c.signals,
+              lackings: c.lackings,
+              strengths: c.strengths,
+            }));
+        }
+      } catch {
+        return [];
+      }
+      return [];
+    },
+    monthly: async (params = "") => {
+      const res = await request(`/monthly-evaluations/${params}`, { timeoutMs: 8000 });
+      return res;
     },
     approveScore: async (scoreId, value, reason) => {
       try {
@@ -385,17 +507,33 @@ export const api = {
     },
   },
 
-  aiCoach: {
-    getFeedback: async (clubId) => {
+  copilot: {
+    chat: async (message, context = {}) => {
+      return await request(`/copilot/chat/`, {
+        method: "POST",
+        body: { message, role: context.role, context },
+        auth: true,
+        timeoutMs: 25000,
+      });
+    },
+    brief: async (clubId) => {
       try {
-        return await request(`/ai-coach/?club=${clubId || ""}`);
+        return await request(`/copilot/brief/?club=${clubId || ""}`, { timeoutMs: 8000 });
       } catch {
         return {
           feedback:
-            "Activity cadence is strong with 42 attendees at your recent Machine Learning Bootcamp. Member participation is in the top 10th percentile. To boost your CCEA Cycle score further, consider formalizing your joint drone sensing initiative with the Environmental Collective—confirmed cross-club projects grant up to 10 bonus points.",
+            "Copilot evaluates clubs from monthly reports, QR attendance, confirmed collaborations, and evidence. Pending partnerships do not count until the partner club confirms.",
+          engine: "clubconnect-copilot-v1",
           generated_at: new Date().toISOString(),
         };
       }
+    },
+    healthScan: async (params = "") => {
+      return await request(`/copilot/health-scan/${params}`, { timeoutMs: 8000 });
+    },
+    committeeBriefing: async (since) => {
+      const q = since ? `?since=${encodeURIComponent(since)}` : "";
+      return await request(`/copilot/committee-briefing/${q}`, { timeoutMs: 8000 });
     },
   },
 
@@ -403,10 +541,30 @@ export const api = {
     getAwards: async () => {
       try {
         const res = await request(`/awards/`);
-        return res.results || res;
+        const rows = res.results || res;
+        if (!Array.isArray(rows)) return MOCK_CCEA_AWARDS;
+        return rows.map((a) => ({
+          ...a,
+          category: a.category || a.category_name || "Award",
+          winner: a.winner || "",
+          citation: a.citation || a.description || "",
+          finalists: Array.isArray(a.finalists) ? a.finalists : a.winner ? [a.winner] : [],
+        }));
       } catch {
-        return MOCK_CCEA_AWARDS;
+        return [];
       }
+    },
+    reveal: async (id, year) => {
+      return await request(`/awards/${id}/reveal/`, {
+        method: "POST",
+        body: year ? { year } : {},
+      });
+    },
+    publishCeremony: async (year) => {
+      return await request(`/awards/publish-ceremony/`, {
+        method: "POST",
+        body: { year: year || new Date().getFullYear() },
+      });
     },
     getHallOfExcellence: async () => {
       try {
@@ -414,6 +572,26 @@ export const api = {
         return res.results || res;
       } catch {
         return MOCK_HALL_OF_EXCELLENCE;
+      }
+    },
+  },
+
+  institutions: {
+    list: async () => {
+      try {
+        return await request(`/institutions/`, { auth: false });
+      } catch {
+        return [
+          {
+            name: "African Leadership College of Higher Education",
+            short_name: "ALCHE",
+            slug: "alche",
+            allowed_email_domains: ["alustudent.com", "alueducation.com"],
+            student_email_domains: ["alustudent.com"],
+            staff_email_domains: ["alueducation.com"],
+            awards_program_name: "Campus Clubs Excellence Awards",
+          },
+        ];
       }
     },
   },
@@ -428,7 +606,96 @@ export const api = {
       }
     },
     getAnalytics: async () => {
-      return MOCK_INSTITUTIONAL_ANALYTICS;
+      try {
+        return await request(`/campus-analytics/`);
+      } catch {
+        return MOCK_INSTITUTIONAL_ANALYTICS;
+      }
+    },
+    getCampusBrief: async () => {
+      return await request(`/campus-brief/`);
+    },
+    getOnboarding: async () => {
+      return await request(`/campus-onboarding/`);
+    },
+    broadcastNotice: async (payload) => {
+      return await request(`/notices/broadcast/`, {
+        method: "POST",
+        body: payload,
+      });
+    },
+    listCampusUsers: async () => {
+      const res = await request(`/campus-users/`);
+      return Array.isArray(res) ? res : res.results || [];
+    },
+    updateCampusUser: async (id, payload) => {
+      return await request(`/campus-users/${id}/`, { method: "PATCH", body: payload });
+    },
+    createCampusUser: async (payload) => {
+      return await request(`/campus-users/`, { method: "POST", body: payload });
+    },
+    getCampusInstitution: async () => {
+      return await request(`/campus-institution/`);
+    },
+    updateCampusInstitution: async (payload) => {
+      return await request(`/campus-institution/`, { method: "PATCH", body: payload });
+    },
+    listLicenceInquiries: async () => {
+      try {
+        const res = await request(`/admin/licence-inquiries/`);
+        return Array.isArray(res) ? res : res.results || [];
+      } catch {
+        return [];
+      }
+    },
+    updateLicenceInquiry: async (id, payload) => {
+      return await request(`/admin/licence-inquiries/${id}/`, {
+        method: "PATCH",
+        body: payload,
+      });
+    },
+    listCampusHandovers: async () => {
+      const res = await request(`/campus-committee-handovers/`);
+      return Array.isArray(res) ? res : res.results || [];
+    },
+    currentCampusCommittee: async () => {
+      return await request(`/campus-committee-handovers/current/`);
+    },
+    submitCampusHandover: async (payload) => {
+      return await request(`/campus-committee-handovers/`, { method: "POST", body: payload });
+    },
+    confirmCampusHandover: async (id) => {
+      return await request(`/campus-committee-handovers/${id}/confirm/`, { method: "POST" });
+    },
+    declineCampusHandover: async (id) => {
+      return await request(`/campus-committee-handovers/${id}/decline/`, { method: "POST" });
+    },
+  },
+
+  licence: {
+    request: async (payload) => {
+      return await request(`/licence-inquiries/`, {
+        method: "POST",
+        body: payload,
+        auth: false,
+      });
+    },
+  },
+
+  help: {
+    createTicket: async (payload) => {
+      return await request(`/help/tickets/`, {
+        method: "POST",
+        body: payload,
+        auth: true,
+      });
+    },
+    myTickets: async () => {
+      return await request(`/help/tickets/`);
+    },
+    staffTickets: async () => {
+      const res = await request(`/admin/help-tickets/`);
+      return Array.isArray(res) ? res : res.results || [];
     },
   },
 };

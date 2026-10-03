@@ -87,20 +87,20 @@ export function EvidenceDetailModal({ isOpen, onClose, evidence, onReviewComplet
             </div>
           </div>
 
-          {/* AI Scoring Recommendation */}
+          {/* Copilot scoring recommendation */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-100 flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold text-sky-900 uppercase tracking-wider">AI Scoring Recommendation</p>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  96% Confidence Match
+                <p className="text-xs font-bold text-sky-900 uppercase tracking-wider">Copilot check</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                  Rule engine · not AI
                 </span>
               </div>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                Signatures cross-checked with campus smartcard tap-ins at the venue during session hours. Roster consistency matches attendance quorum requirements.
+                Copilot will only treat this as strong evidence if it matches a real activity, sits with QR attendance for the same period, and is verified by a person. Confirmed collaborations are scored separately; a named partner with status pending is ignored.
               </p>
             </div>
           </div>

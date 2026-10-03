@@ -1,0 +1,10 @@
+.env
+.env.local
+.env.*.local
+node_modules/
+dist/
+*.swp
+*.swo
+*.swn
+*.swm
+.DS_Store

@@ -40,16 +40,20 @@ export function CCEARevealMode() {
     });
   };
 
-  const handleToggleAward = (award) => {
+  const handleToggleAward = async (award) => {
     const currentState = revealedState[award.id] ?? award.is_revealed;
-    const nextState = !currentState;
-    setRevealedState((prev) => ({ ...prev, [award.id]: nextState }));
-
-    if (nextState) {
+    if (currentState) {
+      setRevealedState((prev) => ({ ...prev, [award.id]: false }));
+      toast.info(`Masked on this screen only. The Hall of Excellence is unchanged until you publish.`);
+      return;
+    }
+    try {
+      await api.awards.reveal(award.id, new Date().getFullYear());
+      setRevealedState((prev) => ({ ...prev, [award.id]: true }));
       triggerWinnerConfetti();
-      toast.success(`Winner unveiled: ${award.winner} for ${award.category}!`);
-    } else {
-      toast.info(`Masked winner for ${award.category}.`);
+      toast.success(`Winner unveiled: ${award.winner || "to be announced"} for ${award.category || award.category_name}.`);
+    } catch (err) {
+      toast.error(err.message || "Could not reveal this award.");
     }
   };
 
@@ -74,7 +78,26 @@ export function CCEARevealMode() {
       });
     }, 250);
 
-    toast.success("Grand Ceremony: All CCEA Annual Award winners unveiled!");
+    toast.success("All winners are shown on this stage. Publish to the Hall of Excellence so the campus can see them.");
+  };
+
+  const handlePublishToHall = async () => {
+    try {
+      const year = new Date().getFullYear();
+      const res = await api.awards.publishCeremony(year);
+      const allRevealed = {};
+      awards.forEach((a) => {
+        allRevealed[a.id] = true;
+      });
+      setRevealedState(allRevealed);
+      triggerWinnerConfetti();
+      toast.success(
+        `Published to the Hall of Excellence (${year})`,
+        `${res.count || 0} honour(s) are now visible to every signed-in student, leader, and staff member.`
+      );
+    } catch (err) {
+      toast.error(err.message || "Could not publish the ceremony.");
+    }
   };
 
   const handleResetCeremony = () => {
@@ -96,8 +119,8 @@ export function CCEARevealMode() {
     const rows = awards.map((a) => {
       const isRev = revealedState[a.id] ?? a.is_revealed;
       return [
-        `"${a.category.replace(/"/g, '""')}"`,
-        `"${(isRev ? a.winner : "Confidential Until Unveiled").replace(/"/g, '""')}"`,
+        `"${String(a.category || a.category_name || "").replace(/"/g, '""')}"`,
+        `"${(isRev ? a.winner || "—" : "Confidential Until Unveiled").replace(/"/g, '""')}"`,
         `"${(a.finalists || []).join(", ").replace(/"/g, '""')}"`,
         `"${(a.citation || "").replace(/"/g, '""')}"`,
         `"${isRev ? "Unveiled" : "Sealed"}"`,
@@ -130,11 +153,11 @@ export function CCEARevealMode() {
             </div>
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-sky-400">CCEA Ceremony Mode</p>
-              <h1 className="text-2xl font-bold">Club Contribution & Excellence Awards</h1>
+              <h1 className="text-2xl font-bold">Campus Clubs Excellence Awards</h1>
             </div>
           </div>
           <p className="text-slate-300 text-sm max-w-xl">
-            Confidential award outcomes with reveal controls. Click "Reveal Winner" to unveil each award during the ceremony. Rankings and criteria weights are visible to committee heads only.
+            Only the Clubs and Societies Committee Head can see marks and rankings here. Publish during the Campus Clubs Excellence Awards so the Hall of Excellence surprises the campus.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-700/60">
             <div className="flex items-center gap-3">
@@ -147,6 +170,14 @@ export function CCEARevealMode() {
 
             {/* Ceremony Quick Action Buttons */}
             <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                id="btn-publish-hall"
+                onClick={handlePublishToHall}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-sky-500 text-white hover:bg-sky-400 shadow-md transition-all active:scale-95"
+              >
+                <Trophy className="w-3.5 h-3.5" />
+                Publish to Hall of Excellence
+              </button>
               <button
                 id="btn-reveal-all-winners"
                 onClick={handleRevealAll}
@@ -231,7 +262,7 @@ export function CCEARevealMode() {
 
                     {/* Finalists */}
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {award.finalists.map((f) => (
+                      {(award.finalists || []).map((f) => (
                         <span key={f} className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
                           isRevealed && f === award.winner
                             ? "bg-amber-400 text-amber-900"
@@ -285,13 +316,13 @@ export function CCEARevealMode() {
                       <p className="text-xs font-semibold text-slate-900 truncate">{r.club}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] font-bold text-sky-700">{r.score}</span>
-                        <span className={`text-[10px] font-medium ${r.trend.startsWith("+") ? "text-emerald-600" : r.trend === "New" ? "text-sky-600" : "text-rose-500"}`}>
-                          {r.trend}
+                        <span className={`text-[10px] font-medium ${String(r.trend || "").startsWith("+") ? "text-emerald-600" : r.trend === "New" ? "text-sky-600" : "text-rose-500"}`}>
+                          {r.trend || "—"}
                         </span>
                       </div>
                     </div>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${healthColors[r.health]}`}>
-                      {r.health.replace("_", " ")}
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${healthColors[r.health || r.band] || "bg-slate-100 text-slate-600"}`}>
+                      {(r.health || r.band || "unscored").replace("_", " ")}
                     </span>
                   </div>
                 ))}
@@ -314,7 +345,7 @@ export function CCEARevealMode() {
                   <div className="w-full bg-slate-100 rounded-full h-1.5">
                     <div
                       className="h-1.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500"
-                      style={{ width: `${(c.weight / 15) * 100}%` }}
+                      style={{ width: `${Math.min(100, Number(c.weight) || 0)}%` }}
                     />
                   </div>
                 </div>

@@ -8,7 +8,9 @@ import {
 } from "lucide-react";
 import { QRCheckInModal } from "../components/student/QRCheckInModal";
 import { AttendanceHistoryModal } from "../components/student/AttendanceHistoryModal";
-import { RankingsDrawerModal } from "../components/student/RankingsDrawerModal";
+import { RequestCharterModal } from "../components/student/RequestCharterModal";
+import { DeclareClubsModal } from "../components/student/DeclareClubsModal";
+import { useMembershipWindow } from "../hooks/useMembershipWindow";
 
 function StatCard({ icon: Icon, label, value, color = "sky" }) {
   const colors = {
@@ -41,18 +43,31 @@ export function StudentDashboard() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
-  const [rankingsModalOpen, setRankingsModalOpen] = useState(false);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [charterOpen, setCharterOpen] = useState(false);
+  const [declareOpen, setDeclareOpen] = useState(false);
+  const { open: censusOpen, loading: censusLoading } = useMembershipWindow();
 
   useEffect(() => {
-    Promise.all([api.memberships.list(), api.events.list(), api.aiCoach.getFeedback()])
+    const onCopilot = (event) => {
+      const action = event.detail?.action;
+      if (action === "open_qr_checkin") setQrModalOpen(true);
+      if (action === "open_attendance_history") setAttendanceModalOpen(true);
+      if (action === "open_request_charter") setCharterOpen(true);
+    };
+    window.addEventListener("cc-copilot-action", onCopilot);
+    return () => window.removeEventListener("cc-copilot-action", onCopilot);
+  }, []);
+
+  useEffect(() => {
+    Promise.all([api.memberships.list(), api.events.list(), api.copilot.brief()])
       .then(([m, e, ai]) => {
         setMemberships(Array.isArray(m) ? m : []);
         setEvents(Array.isArray(e) ? e : []);
         setAiTip(ai?.feedback || "");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.email]);
 
   const approvedMemberships = memberships.filter((m) => m.status === "approved");
   const pendingMemberships = memberships.filter((m) => m.status === "requested");
@@ -61,14 +76,55 @@ export function StudentDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Hero greeting */}
-      <div className="mb-8 sky-gradient-hero rounded-3xl p-8 border border-sky-100 shadow-sm">
+      <div className="morning-hero mb-8 rounded-3xl p-8 shadow-sm">
         <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-2">Student Dashboard</p>
-        <h1 className="text-3xl font-bold text-slate-900 mb-1">
-          Welcome back, {user?.full_name?.split(" ")[0] || "Student"} 👋
+        <h1 className="font-display text-4xl font-medium text-[#1e3a5f] mb-1">
+          Welcome back, {user?.full_name?.split(" ")[0] || "Student"}
         </h1>
         <p className="text-slate-500 text-sm">
-          Your campus life, organised. Clubs, events, QR check-ins — everything in one place.
+          {user?.institution?.academic_year
+            ? `${user.institution.short_name || "Campus"} · ${user.institution.academic_year}`
+            : "Your clubs, check-ins, and a portable leadership record."}
         </p>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const pack = await api.auth.transcript();
+              const blob = new Blob([pack.text || ""], { type: "text/plain;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `ClubConnect_Transcript_${pack.academic_year || "record"}.txt`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            } catch {
+              /* api.js already warns */
+            }
+          }}
+          className="mt-4 inline-flex items-center rounded-full border border-sky-200 bg-white px-4 py-2 text-xs font-semibold text-sky-800"
+        >
+          Download leadership transcript
+        </button>
+        <button
+          type="button"
+          onClick={() => setCharterOpen(true)}
+          className="sun-cta mt-4 ml-2 rounded-full px-4 py-2 text-xs font-semibold text-white"
+        >
+          Request club registration
+        </button>
+        <button
+          type="button"
+          onClick={() => setDeclareOpen(true)}
+          disabled={!censusOpen}
+          className={`mt-4 ml-2 rounded-full px-4 py-2 text-xs font-semibold ${
+            censusOpen ? "border border-sky-200 bg-white text-sky-800" : "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+          }`}
+        >
+          {censusOpen ? "Send the clubs I belong to" : censusLoading ? "Checking membership window…" : "Membership requests are closed"}
+        </button>
       </div>
 
       {/* Stats row */}
@@ -97,7 +153,7 @@ export function StudentDashboard() {
               <p className="font-semibold text-slate-700">No club memberships yet</p>
               <p className="text-sm text-slate-400 mt-1">Explore clubs and send a join request to get started.</p>
               <Link
-                to="/"
+                to="/clubs"
                 className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-sky-500 text-white text-xs font-semibold rounded-full hover:bg-sky-600 transition-colors"
               >
                 Discover Clubs <ArrowRight className="w-3.5 h-3.5" />
@@ -106,14 +162,20 @@ export function StudentDashboard() {
           ) : (
             <div className="space-y-3">
               {memberships.map((m, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between group hover:border-sky-200 transition-all">
+                <Link
+                  key={m.id || i}
+                  to={m.club ? `/clubs/${m.club}` : "/clubs"}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center justify-between group hover:border-sky-200 transition-all"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white font-bold text-sm flex items-center justify-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-amber-400 text-sm font-bold text-white">
                       {m.club_name?.charAt(0)}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900 text-sm">{m.club_name}</p>
-                      <p className="text-xs text-slate-400 capitalize">{m.role} · Joined {new Date(m.joined_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-slate-400 capitalize">
+                        {m.role} · Open published activities & films
+                      </p>
                     </div>
                   </div>
                   <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
@@ -121,9 +183,9 @@ export function StudentDashboard() {
                       ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                       : "bg-amber-50 text-amber-700 border border-amber-200"
                   }`}>
-                    {m.status === "approved" ? "Active" : "Pending"}
+                    {m.status === "approved" ? "Watch page" : "Pending"}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -172,11 +234,11 @@ export function StudentDashboard() {
 
         {/* Right sidebar */}
         <div className="space-y-5">
-          {/* AI Campus Coach */}
-          <div className="bg-gradient-to-br from-sky-600 to-blue-700 rounded-2xl p-5 text-white shadow-md shadow-sky-500/20">
+          {/* Copilot campus guide */}
+          <div className="cc-dusk rounded-2xl p-5 text-white shadow-md">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-sky-200" />
-              <p className="text-xs font-bold uppercase tracking-wider text-sky-100">AI Campus Coach</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-sky-100">ClubConnect Copilot</p>
             </div>
             {loading ? (
               <div className="space-y-2">
@@ -185,7 +247,7 @@ export function StudentDashboard() {
                 <div className="h-3 bg-white/20 rounded animate-pulse w-3/5" />
               </div>
             ) : (
-              <p className="text-sm leading-relaxed text-sky-50">{aiTip || "Keep your activity streak going! Clubs that submit monthly reports on time are 2× more likely to be nominated for CCEA awards."}</p>
+              <p className="text-sm leading-relaxed text-sky-50">{aiTip || "Copilot will explain what you can do after it loads your role at this institution."}</p>
             )}
           </div>
 
@@ -196,14 +258,14 @@ export function StudentDashboard() {
               <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Campus Awards</p>
             </div>
             <p className="text-sm text-slate-600 leading-relaxed">
-              The CCEA Reveal ceremony is approaching. Top clubs compete for <strong>Club of the Year</strong>, <strong>Best Collaboration</strong>, and more.
+              Winners appear here after the Committee Head publishes the Campus Clubs Excellence Awards. Until then, marks stay confidential.
             </p>
-            <button
-              onClick={() => setRankingsModalOpen(true)}
-              className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-sky-600 hover:text-sky-700"
+            <Link
+              to="/hall-of-excellence"
+              className="inline-flex items-center gap-1 mt-3 text-xs font-semibold text-amber-700 hover:text-amber-800"
             >
-              Browse club rankings <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+              Open the Hall of Excellence <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
           {/* Quick discover */}
@@ -234,14 +296,14 @@ export function StudentDashboard() {
                 <span>View My Attendance</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-violet-500" />
               </button>
-              <button
-                onClick={() => setRankingsModalOpen(true)}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-amber-50 text-sm text-slate-700 hover:text-amber-700 transition-colors group active:scale-[0.98]"
+              <Link
+                to="/hall-of-excellence"
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl hover:bg-amber-50 text-sm text-slate-700 hover:text-amber-700 transition-colors group"
               >
                 <Star className="w-4 h-4 text-amber-500" />
-                <span>View CCEA Rankings</span>
+                <span>Hall of Excellence</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-auto text-slate-300 group-hover:text-amber-500" />
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -275,9 +337,11 @@ export function StudentDashboard() {
         attendanceRecords={attendanceRecords}
       />
 
-      <RankingsDrawerModal
-        isOpen={rankingsModalOpen}
-        onClose={() => setRankingsModalOpen(false)}
+      <RequestCharterModal isOpen={charterOpen} onClose={() => setCharterOpen(false)} />
+      <DeclareClubsModal
+        isOpen={declareOpen}
+        onClose={() => setDeclareOpen(false)}
+        onSubmitted={() => api.memberships.list().then((m) => setMemberships(Array.isArray(m) ? m : []))}
       />
     </div>
   );
