@@ -33,6 +33,7 @@ export const en = {
     club_leader: "Club leader",
     committee_head: "Committee head",
     staff: "Staff / lecturer",
+    student_life: "Student Life",
     system_admin: "System administrator",
   },
   auth: {

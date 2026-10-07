@@ -50,6 +50,17 @@ export const MOCK_PERSONAS = [
     avatar: "AH",
   },
   {
+    role: "student_life",
+    label: "Student Life",
+    name: "Amara Diallo",
+    email: "amara.diallo@alueducation.com",
+    password: "Pass1234!",
+    student_id: "STF-2017-0021",
+    description: "Morning desk for charters, quiet clubs, and the membership window. Award scores stay with the committee.",
+    badge: "Student Life",
+    avatar: "AD",
+  },
+  {
     role: "system_admin",
     label: "System Administrator",
     name: "Admin Root",

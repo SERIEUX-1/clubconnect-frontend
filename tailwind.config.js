@@ -62,8 +62,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["IBM Plex Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["Cormorant Garamond", "Fraunces", "Georgia", "serif"],
+        sans: ["Plus Jakarta Sans", "IBM Plex Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ["Plus Jakarta Sans", "IBM Plex Sans", "sans-serif"],
         mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       boxShadow: {

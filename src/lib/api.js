@@ -245,6 +245,12 @@ export const api = {
     rejectCharter: async (clubId) => {
       return await request(`/clubs/${clubId}/reject-charter/`, { method: "POST" });
     },
+    pause: async (clubId, reason) => {
+      return await request(`/clubs/${clubId}/pause/`, { method: "POST", body: { reason } });
+    },
+    restore: async (clubId, reason) => {
+      return await request(`/clubs/${clubId}/restore/`, { method: "POST", body: { reason } });
+    },
     listHandovers: async () => {
       const res = await request(`/leadership-handovers/`);
       return res.results || res;
@@ -594,6 +600,10 @@ export const api = {
         ];
       }
     },
+  },
+
+  studentLife: {
+    desk: async () => request(`/student-life/desk/`),
   },
 
   admin: {

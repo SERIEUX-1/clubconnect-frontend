@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import { I18nProvider } from "./i18n/I18nProvider";
 import { api } from "./lib/api";
-import { SkyCanvas, EternalSun } from "./components/layout/SkyCanvas";
+import { SkyCanvas } from "./components/layout/SkyCanvas";
 import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import { NavBar } from "./components/layout/NavBar";
 import { AuthModal } from "./components/auth/AuthModal";
@@ -21,6 +21,7 @@ import { LeaderDashboard } from "./pages/LeaderDashboard";
 import { CommitteeDashboard } from "./pages/CommitteeDashboard";
 import { CommitteeCommandCenter } from "./pages/CommitteeCommandCenter";
 import { DeanDashboard } from "./pages/DeanDashboard";
+import { StudentLifeDesk } from "./pages/StudentLifeDesk";
 import { CCEARevealMode } from "./pages/CCEARevealMode";
 import { HelpCenter } from "./pages/HelpCenter";
 import { HallOfExcellence } from "./pages/HallOfExcellence";
@@ -58,7 +59,6 @@ export default function App() {
       <ToastProvider>
         <div className="relative min-h-screen">
           <SkyCanvas />
-          <EternalSun />
           <div className="relative z-20">
           <ErrorBoundary>
           <NavBar />
@@ -139,6 +139,14 @@ export default function App() {
               element={
                 <RequireRole path="/membership-ledger">
                   <MembershipLedger />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/student-life"
+              element={
+                <RequireRole path="/student-life">
+                  <StudentLifeDesk />
                 </RequireRole>
               }
             />

@@ -54,7 +54,7 @@ export function NavBar() {
   const showDemoSwitcher = user?.is_demo_account;
 
   return (
-    <header className="sticky top-0 z-40 px-3 pb-2 pt-3 pr-[5.45rem] sm:pr-[5.6rem]">
+    <header className="sticky top-0 z-40 px-3 pb-2 pt-3 sm:px-5">
       {showDemoSwitcher && (
         <div className="mb-2 rounded-full border border-white/60 bg-white/35 px-4 py-1.5 text-xs text-slate-600 shadow-sm backdrop-blur-md">
         <div className="flex items-center space-x-2 max-w-6xl mx-auto w-full">
@@ -112,10 +112,10 @@ export function NavBar() {
       {/* Main Navigation Bar */}
       <div className="nav-island mx-auto max-w-6xl">
         {/* Brand */}
-        <NavLink to="/" className="flex items-center space-x-2.5 group">
+        <NavLink to="/" className="flex shrink-0 items-center space-x-2.5 group">
           <ClubConnectMark size={36} className="group-hover:scale-105 transition-transform" />
           <div className="flex flex-col">
-            <span className="font-display text-xl tracking-tight text-[#1e3a5f] group-hover:text-[#3a7cae] transition-colors">
+            <span className="text-[17px] font-semibold tracking-tight text-[#101314]">
               ClubConnect
             </span>
             {isAuthenticated && user?.institution ? (
@@ -123,7 +123,7 @@ export function NavBar() {
                 <InstitutionMark institution={user.institution} height={20} compact />
               </span>
             ) : (
-              <span className="text-[10px] -mt-1 font-semibold text-sky-600 tracking-wide uppercase">
+              <span className="text-[10px] -mt-0.5 font-medium tracking-wide text-[#5E6E81]">
                 {t("app.tagline")}
               </span>
             )}
@@ -131,21 +131,21 @@ export function NavBar() {
         </NavLink>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center space-x-1.5">
+        <nav className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto md:flex">
           {isAuthenticated && (
           <NavLink
             to="/"
             end
             className={({ isActive }) =>
-              `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+              `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                 isActive
-                  ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                  : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                  ? "bg-[#101314] text-white"
+                  : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               }`
             }
           >
             <Compass className="w-3.5 h-3.5" />
-            <span>{t("nav.discover")}</span>
+            <span className="sr-only xl:not-sr-only">{t("nav.discover")}</span>
           </NavLink>
           )}
 
@@ -153,15 +153,15 @@ export function NavBar() {
           <NavLink
             to="/hall-of-excellence"
             className={({ isActive }) =>
-              `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+              `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                 isActive
-                  ? "bg-amber-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                  : "text-slate-600 hover:text-amber-700 hover:bg-amber-50"
+                  ? "bg-[#101314] text-white"
+                  : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               }`
             }
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>{t("nav.hall")}</span>
+            <span className="sr-only xl:not-sr-only">{t("nav.hall")}</span>
           </NavLink>
           )}
 
@@ -169,15 +169,15 @@ export function NavBar() {
           <NavLink
             to={getDashboardPath()}
             className={({ isActive }) =>
-              `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+              `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                 isActive
-                  ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                  : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                  ? "bg-[#101314] text-white"
+                  : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               }`
             }
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>{t("nav.dashboard")}</span>
+            <span className="sr-only xl:not-sr-only">{t("nav.dashboard")}</span>
           </NavLink>
           )}
 
@@ -185,15 +185,15 @@ export function NavBar() {
             <NavLink
               to="/committee-dashboard"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <FileStack className="w-3.5 h-3.5" />
-              <span>{t("nav.evidence")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.evidence")}</span>
             </NavLink>
           )}
 
@@ -201,15 +201,15 @@ export function NavBar() {
             <NavLink
               to="/command-center"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{t("nav.command")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.command")}</span>
             </NavLink>
           )}
 
@@ -217,15 +217,15 @@ export function NavBar() {
             <NavLink
               to="/membership-ledger"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <Users className="w-3.5 h-3.5" />
-              <span>{t("nav.membership")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.membership")}</span>
             </NavLink>
           )}
 
@@ -233,15 +233,15 @@ export function NavBar() {
             <NavLink
               to="/ccea-reveal"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <Award className="w-3.5 h-3.5" />
-              <span>{t("nav.reveal")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.reveal")}</span>
             </NavLink>
           )}
 
@@ -249,15 +249,15 @@ export function NavBar() {
             <NavLink
               to="/admin-dashboard"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <Shield className="w-3.5 h-3.5" />
-              <span>{t("nav.campusAdmin")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.campusAdmin")}</span>
             </NavLink>
           )}
 
@@ -265,42 +265,42 @@ export function NavBar() {
             <NavLink
               to="/staff-dashboard"
               className={({ isActive }) =>
-                `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+                `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                   isActive
-                    ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                    : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                    ? "bg-[#101314] text-white"
+                    : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
                 }`
               }
             >
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>{t("nav.analytics")}</span>
+              <span className="sr-only xl:not-sr-only">{t("nav.analytics")}</span>
             </NavLink>
           )}
           <NavLink
             to="/trust"
             className={({ isActive }) =>
-              `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+              `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                 isActive
-                  ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                  : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                  ? "bg-[#101314] text-white"
+                  : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               }`
             }
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{t("nav.trust")}</span>
+            <span className="sr-only xl:not-sr-only">{t("nav.trust")}</span>
           </NavLink>
           <NavLink
             to="/help"
             className={({ isActive }) =>
-              `flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all ${
+              `flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium transition-colors ${
                 isActive
-                  ? "bg-sky-500 text-white shadow-sm ring-2 ring-amber-200/90"
-                  : "text-slate-600 hover:text-sky-600 hover:bg-sky-50"
+                  ? "bg-[#101314] text-white"
+                  : "text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               }`
             }
           >
             <CircleHelp className="w-3.5 h-3.5" />
-            <span>{t("nav.help")}</span>
+            <span className="sr-only xl:not-sr-only">{t("nav.help")}</span>
           </NavLink>
         </nav>
 
@@ -318,16 +318,16 @@ export function NavBar() {
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center space-x-2 p-1.5 pr-3 rounded-full hover:bg-sky-50 border border-transparent hover:border-sky-200 transition-all"
+                className="flex items-center space-x-2 rounded-xl p-1.5 pr-3 transition-all hover:bg-[#F3F5F8]"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-sky-500 to-amber-400 text-white font-bold text-xs flex items-center justify-center shadow-inner">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#101314] text-xs font-semibold text-white">
                   {user?.full_name ? user.full_name.charAt(0) : "U"}
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-xs font-bold text-slate-800 leading-none">
                     {user?.full_name || user?.username}
                   </div>
-                  <div className="text-[10px] text-sky-600 font-medium capitalize mt-0.5">
+                  <div className="text-[10px] text-[#5E6E81] font-medium capitalize mt-0.5">
                     {role.replace("_", " ")}
                   </div>
                 </div>
@@ -376,19 +376,19 @@ export function NavBar() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => openLicenceModal()}
-                className="hidden sm:inline px-3 py-2 rounded-full text-xs font-semibold text-[#1e3a5f] hover:bg-white/70"
+                className="hidden sm:inline rounded-xl px-3 py-2 text-xs font-semibold text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               >
                 {t("nav.licence")}
               </button>
               <button
                 onClick={() => openAuthModal("login")}
-                className="px-4 py-2 rounded-full text-xs font-semibold text-sky-900 hover:bg-white/70"
+                className="rounded-xl px-3.5 py-2 text-xs font-semibold text-[#5E6E81] hover:bg-[#F3F5F8] hover:text-[#101314]"
               >
                 {t("nav.signIn")}
               </button>
               <button
                 onClick={() => openAuthModal("register")}
-                className="sun-cta rounded-full px-4 py-2 text-xs font-semibold text-white"
+                className="sun-cta rounded-xl px-3.5 py-2 text-xs font-semibold text-white"
               >
                 {t("nav.createAccount")}
               </button>

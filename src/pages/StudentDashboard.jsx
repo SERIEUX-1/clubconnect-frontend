@@ -76,9 +76,9 @@ export function StudentDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
       {/* Hero greeting */}
-      <div className="morning-hero mb-8 rounded-3xl p-8 shadow-sm">
-        <p className="text-xs font-bold text-sky-600 uppercase tracking-widest mb-2">Student Dashboard</p>
-        <h1 className="font-display text-4xl font-medium text-[#1e3a5f] mb-1">
+      <div className="morning-hero mb-8 rounded-[28px] p-8">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#5F92B2]">Student Dashboard</p>
+        <h1 className="mb-1 text-4xl font-semibold tracking-tight text-[#101314]">
           Welcome back, {user?.full_name?.split(" ")[0] || "Student"}
         </h1>
         <p className="text-slate-500 text-sm">

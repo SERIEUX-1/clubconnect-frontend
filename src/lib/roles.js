@@ -7,6 +7,8 @@ export function dashboardPathForRole(role) {
     case "staff":
     case "dean_admin":
       return "/staff-dashboard";
+    case "student_life":
+      return "/student-life";
     case "system_admin":
       return "/admin-dashboard";
     default:
@@ -23,6 +25,7 @@ export const ROUTE_ROLES = {
   "/membership-ledger": ["committee_head"],
   "/staff-dashboard": ["staff", "system_admin"],
   "/dean-dashboard": ["staff", "system_admin"],
+  "/student-life": ["student_life"],
   "/admin-dashboard": ["system_admin"],
 };
 

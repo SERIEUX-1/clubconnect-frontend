@@ -34,6 +34,7 @@ export const fr = {
     club_leader: "Responsable de club",
     committee_head: "Chef de comité",
     staff: "Personnel / enseignant",
+    student_life: "Vie étudiante",
     system_admin: "Administrateur système",
   },
   auth: {

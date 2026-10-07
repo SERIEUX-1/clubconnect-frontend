@@ -38,6 +38,7 @@ export const rw = {
     club_leader: "Umuyobozi w'ikipe",
     committee_head: "Umuyobozi wa komite",
     staff: "Umukozi / umwarimu",
+    student_life: "Ubuzima bw'abanyeshuri",
     system_admin: "Umuyobozi wa sisitemu",
   },
   auth: {

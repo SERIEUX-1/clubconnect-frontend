@@ -119,20 +119,20 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1e3a5f]/35 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-[32px] border border-white/70 bg-[rgba(255,250,244,0.96)] shadow-island flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#101314]/30 p-4 backdrop-blur-md">
+      <div className="relative flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-[28px] border border-white bg-white shadow-[0_40px_80px_-36px_rgba(16,19,20,0.45)]">
         {/* Sky Header Banner */}
-        <div className="relative flex items-center justify-between px-6 pb-5 pt-6 text-white cc-dusk">
+        <div className="relative flex items-center justify-between border-b border-[#EEF0F5] px-6 pb-5 pt-6 text-[#101314]">
           <div className="flex items-center space-x-3">
             <ClubConnectMark size={40} />
             <div>
-              <h2 className="font-display text-2xl tracking-tight">{t("auth.welcome")}</h2>
-              <p className="text-xs text-white/80 font-medium">{t("auth.key")}</p>
+              <h2 className="text-2xl font-semibold tracking-tight">{t("auth.welcome")}</h2>
+              <p className="text-xs font-medium text-[#5E6E81]">{t("auth.key")}</p>
             </div>
           </div>
           <button
             onClick={closeAuthModal}
-            className="p-1.5 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-colors"
+            className="rounded-full p-1.5 text-[#5E6E81] transition-colors hover:bg-[#F3F5F8] hover:text-[#101314]"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -140,13 +140,13 @@ export function AuthModal() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-amber-100 bg-gradient-to-r from-sky-50 to-amber-50 p-1.5">
+        <div className="flex border-b border-[#EEF0F5] bg-[#FBFBFD] p-1.5">
           <button
             onClick={() => { setAuthModalTab("demo"); setError(""); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 ${
               authModalTab === "demo"
-                ? "bg-white text-sky-600 shadow-sm border border-sky-100"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-[#101314] shadow-sm border border-[#E7EAF1]"
+                : "text-[#5E6E81] hover:text-[#101314]"
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-sky-500" />
@@ -156,8 +156,8 @@ export function AuthModal() {
             onClick={() => { setAuthModalTab("login"); setError(""); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 ${
               authModalTab === "login"
-                ? "bg-white text-sky-600 shadow-sm border border-sky-100"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-[#101314] shadow-sm border border-[#E7EAF1]"
+                : "text-[#5E6E81] hover:text-[#101314]"
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -167,8 +167,8 @@ export function AuthModal() {
             onClick={() => { setAuthModalTab("register"); setError(""); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 ${
               authModalTab === "register"
-                ? "bg-white text-sky-600 shadow-sm border border-sky-100"
-                : "text-slate-600 hover:text-slate-900"
+                ? "bg-white text-[#101314] shadow-sm border border-[#E7EAF1]"
+                : "text-[#5E6E81] hover:text-[#101314]"
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
